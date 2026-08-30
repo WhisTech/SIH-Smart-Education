@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SAMPLE_LEARNING_DOCUMENTS } from '../data/seedData';
+import { generateQuizFromPdf } from '../services/api';
 
 export default function DocQuizEngine({ employee, setEmployee, onBackToDashboard, lang }) {
   const [selectedDoc, setSelectedDoc] = useState(SAMPLE_LEARNING_DOCUMENTS[0]);
@@ -114,11 +115,69 @@ export default function DocQuizEngine({ employee, setEmployee, onBackToDashboard
     ];
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadedFileName(file.name);
+
+    // If PDF file, send to backend Groq AI Quiz Generator!
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      try {
+        setIsIngesting(true);
+        setIngestStep(1);
+        const result = await generateQuizFromPdf(file);
+        setIngestStep(2);
+        
+        if (result.success && result.quiz?.questions) {
+          const mappedQuestions = result.quiz.questions.map((q, idx) => {
+            const optionKeys = ['A', 'B', 'C', 'D'];
+            const correctIdx = optionKeys.indexOf(q.correctAnswer) !== -1 ? optionKeys.indexOf(q.correctAnswer) : 0;
+            const optionsArr = [
+              q.options?.A || 'Option A',
+              q.options?.B || 'Option B',
+              q.options?.C || 'Option C',
+              q.options?.D || 'Option D'
+            ];
+            const diffMap = { 1: 'Foundation', 2: 'Intermediate', 3: 'Advanced' };
+
+            return {
+              id: 'GROQ_Q' + (idx + 1),
+              difficulty: diffMap[q.difficulty] || 'Intermediate',
+              difficultyLevel: q.difficulty || 2,
+              question: q.question,
+              options: optionsArr,
+              correctIndex: correctIdx,
+              explanation: q.explanation + (q.sourceCitation ? ` (Source: "${q.sourceCitation}")` : ''),
+              competencyId: 'COMP_004',
+              competencyName: 'Official Statistical Analysis',
+              igotRecommendation: 'IGOT_002'
+            };
+          });
+
+          const fileDoc = {
+            id: 'PDF_' + Date.now(),
+            title: file.name,
+            category: 'Groq AI Extracted PDF Manual',
+            fileSize: (file.size / 1024).toFixed(1) + ' KB',
+            pages: result.pageCount || 1,
+            tag: 'COMP_004',
+            summary: `Parsed with Groq AI (Llama 3.3). Extracted ${mappedQuestions.length} official statistics MCQs grounded in source text.`,
+            questions: mappedQuestions
+          };
+
+          setCustomFile(fileDoc);
+          setSelectedDoc(fileDoc);
+          setActiveQuestions(mappedQuestions);
+          setIngestStep(3);
+          setTimeout(() => setIsIngesting(false), 800);
+          return;
+        }
+      } catch (err) {
+        console.error('Groq AI API error, falling back to local extractor:', err);
+        setIsIngesting(false);
+      }
+    }
 
     let textSnippet = "";
     if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.csv') || file.name.endsWith('.json') || file.name.endsWith('.md')) {

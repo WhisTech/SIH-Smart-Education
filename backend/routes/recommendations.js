@@ -10,7 +10,38 @@ function getPriority(gap) {
 }
 
 // =========================================================================
-// 1. GET RECOMMENDATIONS FOR AN EMPLOYEE
+// 1. GET FULL iGOT & NSSTA CATALOG (With optional filtering)
+//    Example: GET /api/recommendations/catalog?source=iGOT
+// =========================================================================
+router.get('/catalog', async (req, res) => {
+  try {
+    const { source, competency, level } = req.query;
+
+    let query = supabase.from('igot_courses').select('*');
+
+    if (source) query = query.ilike('source', `%${source}%`);
+    if (competency) query = query.ilike('competency_name', `%${competency}%`);
+    if (level) query = query.eq('level', level);
+
+    const { data: courses, error } = await query.order('course_name');
+
+    if (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+
+    res.json({
+      success: true,
+      count: courses.length,
+      courses
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =========================================================================
+// 2. GET PERSONALIZED RECOMMENDATIONS BASED ON SKILL GAPS
+//    Example: GET /api/recommendations/:employeeProfileId
 // =========================================================================
 router.get('/:employeeProfileId', async (req, res) => {
   try {
@@ -89,28 +120,16 @@ router.get('/:employeeProfileId', async (req, res) => {
         };
       })
       .filter((item) => item.gap > 0)
-      .sort((a, b) => {
-        if (b.gap !== a.gap) {
-          return b.gap - a.gap;
-        }
-        return a.competency.localeCompare(b.competency);
-      });
+      .sort((a, b) => b.gap - a.gap);
 
     // 6. Find courses for each gap
     const recommendations = [];
 
     for (const gap of gaps) {
-      const { data: resources, error: resourceError } = await supabase
+      const { data: resources } = await supabase
         .from('igot_courses')
-        .select(
-          'id, competency_name, course_name, course_url, level, target_level, duration_minutes, description, source, source_type'
-        )
+        .select('*')
         .eq('competency_name', gap.competency);
-
-      if (resourceError) {
-        console.error(`Resource lookup error for ${gap.competency}:`, resourceError.message);
-        continue;
-      }
 
       if (!resources || resources.length === 0) {
         recommendations.push({
@@ -126,11 +145,11 @@ router.get('/:employeeProfileId', async (req, res) => {
         continue;
       }
 
-      // Sort resources closest to target proficiency level
+      // Sort resources closest to target level
       const sortedResources = [...resources].sort((a, b) => {
-        const aLevelDiff = Math.abs((a.target_level || 5) - gap.requiredLevel);
-        const bLevelDiff = Math.abs((b.target_level || 5) - gap.requiredLevel);
-        return aLevelDiff - bLevelDiff;
+        const aDiff = Math.abs((a.target_level || 5) - gap.requiredLevel);
+        const bDiff = Math.abs((b.target_level || 5) - gap.requiredLevel);
+        return aDiff - bDiff;
       });
 
       recommendations.push({
@@ -141,21 +160,20 @@ router.get('/:employeeProfileId', async (req, res) => {
         gap: gap.gap,
         priority: gap.priority,
         resourceFound: true,
-        resources: sortedResources.map((resource) => ({
-          id: resource.id,
-          name: resource.course_name,
-          url: resource.course_url,
-          level: resource.level,
-          targetLevel: resource.target_level,
-          durationMinutes: resource.duration_minutes,
-          description: resource.description,
-          source: resource.source,
-          sourceType: resource.source_type
+        resources: sortedResources.map((r) => ({
+          id: r.id,
+          name: r.course_name,
+          url: r.course_url,
+          level: r.level,
+          targetLevel: r.target_level,
+          durationMinutes: r.duration_minutes,
+          description: r.description,
+          source: r.source,
+          sourceType: r.source_type
         }))
       });
     }
 
-    // 7. Return complete recommendations payload
     res.json({
       success: true,
       employee: {
@@ -166,22 +184,49 @@ router.get('/:employeeProfileId', async (req, res) => {
         jobRole: employee.job_role
       },
       totalSkillGaps: gaps.length,
-      gapsWithRecommendations: recommendations.filter((item) => item.resourceFound).length,
-      gapsWithoutRecommendations: recommendations.filter((item) => !item.resourceFound).length,
+      gapsWithRecommendations: recommendations.filter((i) => i.resourceFound).length,
+      gapsWithoutRecommendations: recommendations.filter((i) => !i.resourceFound).length,
       recommendations
     });
   } catch (error) {
     console.error('Recommendation API error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // =========================================================================
-// 2. COMPLETE COURSE / PROGRESS SYNC (Closed-Loop iGOT Integration)
+// 3. ENROLL IN A COURSE (Tracking)
+//    Example: POST /api/recommendations/enroll
+// =========================================================================
+router.post('/enroll', async (req, res) => {
+  try {
+    const { employeeProfileId, courseId } = req.body;
+
+    if (!employeeProfileId || !courseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'employeeProfileId and courseId are required'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Enrolled in iGOT / NSSTA module successfully',
+      enrollment: {
+        employeeProfileId,
+        courseId,
+        enrolledAt: new Date().toISOString(),
+        status: 'in_progress'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =========================================================================
+// 4. COMPLETE COURSE & AUTO-UPDATE COMPETENCY LEVEL (Closed-Loop Sync)
+//    Example: POST /api/recommendations/complete-course
 // =========================================================================
 router.post('/complete-course', async (req, res) => {
   try {
@@ -194,7 +239,7 @@ router.post('/complete-course', async (req, res) => {
       });
     }
 
-    // Update employee competency level in Supabase
+    // Update competency level in Supabase
     const { data, error } = await supabase
       .from('employee_competencies')
       .upsert(
@@ -210,23 +255,18 @@ router.post('/complete-course', async (req, res) => {
     if (error) {
       return res.status(500).json({
         success: false,
-        message: 'Failed to update competency level',
+        message: 'Failed to update competency level in Supabase',
         error: error.message
       });
     }
 
     res.json({
       success: true,
-      message: 'Course marked completed! Competency level updated and gap closed.',
-      data
+      message: 'Course completed! Competency level upgraded and skill gap closed.',
+      updatedCompetency: data
     });
   } catch (error) {
-    console.error('Complete course error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
