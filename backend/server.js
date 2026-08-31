@@ -1,17 +1,25 @@
 const express = require('express')
 const cors = require('cors')
-const { createClient } = require('@supabase/supabase-js')
 require('dotenv').config()
+
+const supabase = require('./db');
+const skillGapRouter = require('./routes/skillGap');
+const aiAssessmentRouter = require('./routes/aiAssessment');
+const recommendationsRouter = require('./routes/recommendations');
+const quizRouter = require('./routes/quiz');
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY
-)
+app.use('/api/skill-gap', skillGapRouter);
+app.use('/api/ai-assessment', aiAssessmentRouter);
+app.use(
+  '/api/recommendations',
+  recommendationsRouter
+);
+app.use('/api/quiz', quizRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({
