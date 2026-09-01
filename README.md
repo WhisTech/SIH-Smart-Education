@@ -1,421 +1,234 @@
-# Welcome to SIH
-# SIH Smart Education
+# AI-Enabled Skill Intelligence and Learning Platform for India's Official Statistical System
 
-AI-enabled learning and competency development platform for India's Official Statistical System.
+> **Smart India Hackathon (SIH) 2026**  
+> **Problem Statement ID:** PS26101  
+> **Organization:** Ministry of Statistics and Programme Implementation (MoSPI), Government of India  
+> **Domain:** Smart Education & Capacity Building  
 
-The platform is designed to identify employee competency gaps, recommend personalized learning, support assessments, and strengthen capacity building.
+---
 
-## Technology Stack
+## 1. Problem Statement
 
-### Frontend
+India's Official Statistical System employs personnel across multiple cadres, designations, and field offices (such as NSO SDRD, FOD, DPD, ESD, SSD, NAD). These statistical officials possess varying levels of domain expertise, field experience, and analytical backgrounds. 
 
-* React
-* Vite
-* JavaScript
-* Supabase JavaScript Client
+### Key Challenges in Existing Training Systems:
+1. **Generic Training Courses:** Conventional learning portals offer one-size-fits-all courses that do not align with specific designation roles.
+2. **Lack of Competency Diagnostics:** Absence of adaptive tools to accurately assess an official's current competency versus required job benchmarks.
+3. **Unidentified Skill Gaps:** No automated mechanism to isolate specific skill deficiencies or prioritize training needs.
+4. **Unmeasured Learning Impact:** Inability to continuously track progress or measure post-training competency improvement via structured reassessment.
 
-### Backend
+---
 
-* Node.js
-* Express.js
-* JavaScript
+## 2. Proposed Solution
 
-### Database and Authentication
-
-* Supabase
-* PostgreSQL
-* Supabase Authentication
-* Row Level Security (RLS)
-
-### Future AI Components
-
-AI/ML components will be added only where they provide clear value, such as adaptive assessments, competency analysis, personalized recommendations, and learning-content generation.
-
-## Project Structure
+Our platform introduces an end-to-end AI-driven Skill Intelligence and Capacity Building ecosystem:
 
 ```text
-SIH-Smart-Education/
-│
-├── frontend/
-│   ├── src/
-│   │   ├── lib/
-│   │   │   └── supabase.js
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── public/
-│   ├── .env.local
-│   ├── package.json
-│   └── ...
-│
-├── backend/
-│   ├── server.js
-│   ├── .env
-│   ├── package.json
-│   └── ...
-│
-├── database/
-│   ├── README.md
-│   └── SQL migration files
-│
-├── docs/
-│   └── project documentation
-│
-├── .gitignore
-└── README.md
+┌──────────┐     ┌──────────┐     ┌──────────────┐     ┌───────────┐     ┌───────┐
+│  ASSESS  │ ──► │ ANALYZE  │ ──► │ IDENTIFY GAPS│ ──► │ RECOMMEND │ ──► │ LEARN │
+└──────────┘     └──────────┘     └──────────────┘     └───────────┘     └───┬───┘
+                                                                             │
+┌──────────────────────┐     ┌────────────┐     ┌───────┐                    │
+│ MEASURE IMPROVEMENT  │ ◄── │ RE-ASSESS  │ ◄── │ TRACK │ ◄──────────────────┘
+└──────────────────────┘     └────────────┘     └───────┘
 ```
 
-## Features
+1. **Assess:** Adaptive AI-powered competency quizzes tailored to official statistical roles.
+2. **Analyze:** Mathematical scoring across individual statistical competencies.
+3. **Identify Gaps:** Automated delta calculation comparing actual performance against official designation benchmarks.
+4. **Recommend:** Dynamic matching with verified iGOT Karmayogi and NSSTA learning modules.
+5. **Learn:** Personalized learning path execution.
+6. **Track:** Monitoring module status (`Pending`, `In Progress`, `Completed`).
+7. **Re-assess:** Post-training evaluation to validate skill acquisition.
+8. **Measure Improvement:** Visual side-by-side growth analytics proving training ROI.
 
-### Feature 1 — Competency Assessment and Skill Gap Identification
+---
 
-The first feature covers:
+## 3. Core Features & Implementation Status
+
+| Feature Name | Description | Status |
+| :--- | :--- | :--- |
+| **Official Profile Manager** | Profile onboarding with designation lookup & skill mapping | `CURRENT / IMPLEMENTED` |
+| **Adaptive AI Quiz Engine** | Dynamic single-question generation with difficulty adaptation | `CURRENT / IMPLEMENTED` |
+| **PDF MCQ Generator** | Grounded question generation from MoSPI survey documents via Gemini | `CURRENT / IMPLEMENTED` |
+| **Skill-Gap Analysis Engine** | Automated percentage gap calculation & priority grading | `CURRENT / IMPLEMENTED` |
+| **iGOT Recommendations** | Personalized course recommendations catalog matched to gaps | `CURRENT / IMPLEMENTED` |
+| **Reassessment Engine** | Before-and-after score comparison and improvement tracking | `CURRENT / IMPLEMENTED` |
+| **Research Engine** | 4-Signal Fusion recommendation & Knowledge Graph visualizer | `CURRENT / IMPLEMENTED` |
+| **Employee Dashboard** | Centralized dashboard for tracking competency scores | `CURRENT / IMPLEMENTED` |
+| **Admin Analytics Panel** | MoSPI-wide department skill gap metrics & training planning | `PROPOSED / FUTURE` |
+
+---
+
+## 4. Technology Stack
+
+* **Frontend:** React 19, Vite 8, React Router 7, Custom CSS Layouts
+* **Backend:** Node.js (Express 5), Groq SDK (`groq-sdk`), Google Gemini API, Multer (PDF parsing), PDFParse
+* **Database & Auth:** Supabase PostgreSQL with Row-Level Security (RLS), Supabase GoTrue Auth
+* **AI Provider Engines:** Groq LLaMA / Compound models, Google Gemini `gemini-3.6-flash`
+* **Linter & Build Tools:** Oxlint, Vite build pipeline
+
+---
+
+## 5. System Architecture Overview
+
+The system is currently implemented using **Architecture A (Modular Monolith)**, optimized for demonstration reliability, zero infrastructure friction, and straightforward maintenance.
 
 ```text
-Employee Profile
-        ↓
-Competency Assessment
-        ↓
-Competency Score
-        ↓
-Required vs Current Competency
-        ↓
-Skill Gap Report
+React Single Page App (Frontend) ──► Express API Monolith (Backend) ──► Supabase PostgreSQL (Database)
+                                              │
+                                              ▼
+                               Groq SDK & Google Gemini (AI Services)
 ```
 
-The employee profile includes:
+> Detailed architecture blueprints are documented in [`docs/architecture-a.md`](./docs/architecture-a.md), [`docs/architecture-b.md`](./docs/architecture-b.md), and [`docs/architecture-comparison.md`](./docs/architecture-comparison.md).
 
-* Name
-* Department
-* Designation
-* Job Role
-* Current Assignment
-* Education
-* Experience
-* Previous Training
+---
 
-The system will compare employee competencies against the predefined competency framework and identify skill gaps.
+## 6. User Roles
 
-## Supabase Setup
+### 1. Employee (`CURRENT / IMPLEMENTED`)
+* Create and update employee profile (Name, Employee ID, Designation, Department).
+* Select active statistical competencies.
+* Take adaptive AI competency assessments.
+* Review skill-gap breakdowns and priority warnings.
+* Access personalized iGOT Karmayogi course recommendations.
+* Complete reassessments to measure proficiency improvement over time.
+* Generate grounded MCQs from custom PDF training manuals.
 
-The project uses a shared Supabase project.
+### 2. Administrator (`PROPOSED / FUTURE`)
+* View MoSPI-wide employee assessment statistics.
+* Inspect department-level skill gaps across divisions (SDRD, FOD, DPD, ESD, NAD).
+* Plan institutional training batches for NSSTA / TPAC physical training programmes.
 
-All developers must use their own Supabase account.
+---
 
-### Supabase Team Access
+## 7. AI Integration Architecture
 
-Each developer must:
+AI is integrated strictly as an **intelligence and generation layer** bounded by rigid application rules:
+* **AI Handles:** Adaptive question generation, grounded PDF MCQ extraction, qualitative summary reporting.
+* **Application Handles:** Authenticated sessions, numerical score calculation, required competency level benchmarks, database persistence.
 
-1. Have their own Supabase account.
-2. Be invited to the project by the project administrator.
-3. Accept the project invitation.
-4. Access the shared Supabase project using their own account.
+> Full AI governance specification available in [`docs/ai-architecture.md`](./docs/ai-architecture.md).
 
-**Never share your Supabase account password with another developer.**
+---
 
-## Environment Variables
-
-Environment files contain project credentials and must never be committed to Git.
-
-Every developer must create their own local environment files after cloning the repository.
-
-### Frontend Environment
-
-Go to:
+## 8. External Ecosystem Integration
 
 ```text
-frontend/
+                               ┌───────────────────────────┐
+                               │  MoSPI Smart Education    │
+                               └─────────────┬─────────────┘
+                                             │
+      ┌──────────────────────────────┬───────┴──────────────────────────────┐
+      ▼                              ▼                                      ▼
+┌──────────┐          ┌───────────────────────────┐          ┌───────────────────────────┐
+│  NSSTA   │          │      iGOT Karmayogi       │          │           TPAC            │
+│ Training │          │   Course Recommendation   │          │     Capacity Building     │
+└──────────┘          └───────────────────────────┘          └───────────────────────────┘
 ```
 
-Create:
+* **NSSTA (National Statistical Systems Training Academy):** Institutional partner for physical training batch allocation.
+* **iGOT Karmayogi:** Integrated via verified database catalog and Mock REST Adapter, ready for live API webhook activation upon official key release.
 
-```text
-.env.local
-```
+---
 
-Add:
+## 9. Installation & Setup Guide
 
-```env
-VITE_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
-VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-```
+### Prerequisites
+* **Node.js:** v18.0.0 or higher
+* **npm:** v9.0.0 or higher
+* **Supabase Project:** Configured PostgreSQL instance with schema scripts applied.
 
-Each developer must create this file on their own computer.
-
-Do not copy `.env.local` through GitHub.
-
-Do not commit `.env.local`.
-
-The frontend uses the Supabase publishable key. This key is intended for client-side use, while database security is enforced through authentication and Row Level Security.
-
-### Backend Environment
-
-Go to:
-
-```text
-backend/
-```
-
-Create:
-
-```text
-.env
-```
-
-Add:
-
-```env
-SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
-SUPABASE_SECRET_KEY=YOUR_SUPABASE_SECRET_KEY
-PORT=5000
-```
-
-The backend secret key must remain on the backend/server only.
-
-**Never put `SUPABASE_SECRET_KEY` in the React frontend.**
-
-**Never commit the backend `.env` file.**
-
-## Initial Setup
-
-### 1. Clone the repository
-
+### Step 1: Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/WhisTech/SIH-Smart-Education.git
 cd SIH-Smart-Education
 ```
 
-### 2. Install frontend dependencies
+### Step 2: Configure Environment Variables
 
+#### Backend Environment Setup (`backend/.env`)
+```env
+PORT=5000
+SUPABASE_URL=https://your-supabase-project.supabase.co
+SUPABASE_SECRET_KEY=your-supabase-service-role-secret-key
+GROQ_API_KEY=your-groq-api-key
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+#### Frontend Environment Setup (`frontend/.env`)
+```env
+VITE_SUPABASE_URL=https://your-supabase-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_BACKEND_URL=http://localhost:5000
+```
+
+### Step 3: Install Dependencies & Run Applications
+
+#### Running Backend Server:
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+#### Running Frontend Application:
 ```bash
 cd frontend
 npm install
-```
-
-### 3. Create frontend environment file
-
-Create:
-
-```text
-frontend/.env.local
-```
-
-Add the Supabase project URL and publishable key provided for the project.
-
-### 4. Start frontend
-
-```bash
 npm run dev
 ```
 
-The frontend runs by default at:
+---
+
+## 10. Repository Directory Structure
 
 ```text
-http://localhost:5173
+SIH-Smart-Education/
+├── backend/                  # Express 5 backend server & AI clients
+│   ├── data/                 # Synthetic research datasets
+│   ├── research/             # 4-Signal Fusion & Knowledge Graph engines
+│   ├── geminiClient.js       # Gemini API client & PDF parser
+│   ├── groqClient.js         # Groq SDK adaptive MCQ generator
+│   └── server.js             # Express API route endpoints
+├── database/                 # SQL database migration scripts
+│   ├── 002_designations_seed.sql
+│   ├── 003_skills_seed.sql
+│   ├── 004_rls_policies.sql
+│   ├── 005_assessment_schema.sql
+│   └── 006_skill_gap_schema.sql
+├── docs/                     # Comprehensive Architecture & Flow Specifications
+│   ├── ai-architecture.md
+│   ├── architecture-a.md
+│   ├── architecture-b.md
+│   ├── architecture-comparison.md
+│   ├── backend-architecture.md
+│   ├── database-architecture.md
+│   ├── frontend-architecture.md
+│   ├── security-architecture.md
+│   ├── system-data-flow.md
+│   └── user-flows.md
+└── frontend/                 # React 19 Single Page Application
+    └── src/
+        ├── components/       # Layout, ProtectedRoute, SkillSelector
+        ├── context/          # AuthContext provider
+        ├── lib/              # Supabase & Reference Data helpers
+        └── pages/            # Dashboard, Assessment, iGOT, Profile, Reassessment
 ```
 
-### 5. Install backend dependencies
+---
 
-Open another terminal:
+## 11. Project Documentation Index
 
-```bash
-cd SIH-Smart-Education/backend
-npm install
-```
-
-### 6. Create backend environment file
-
-Create:
-
-```text
-backend/.env
-```
-
-Add the required backend Supabase credentials.
-
-### 7. Start backend
-
-```bash
-npm run dev
-```
-
-The backend runs by default at:
-
-```text
-http://localhost:5000
-```
-
-### 8. Test backend
-
-Open:
-
-```text
-http://localhost:5000/api/health
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Backend is running"
-}
-```
-
-## Database
-
-The project uses Supabase PostgreSQL.
-
-Database changes are stored as SQL files inside:
-
-```text
-database/
-```
-
-SQL files should be numbered according to their execution order.
-
-Example:
-
-```text
-database/
-├── 001_employee_profiles.sql
-├── 002_competency_framework.sql
-├── 003_assessments.sql
-└── ...
-```
-
-Database changes must be tested in Supabase before being committed to Git.
-
-Do not store passwords, API keys, secret keys, or other credentials in the `database/` directory.
-
-## Security Rules
-
-The following rules are mandatory:
-
-* Never share personal Supabase passwords.
-* Never commit `.env` files.
-* Never commit `.env.local` files.
-* Never commit Supabase secret keys.
-* Never put the Supabase secret key in the frontend.
-* Never disable Row Level Security just to solve an application error.
-* Use Supabase Authentication for user identity.
-* Use RLS policies to protect user data.
-* Do not hard-code credentials in source code.
-* Do not upload credentials to GitHub.
-
-## Git Workflow
-
-The `main` branch contains the stable version of the project.
-
-Developers should not directly push unfinished work to `main`.
-
-Recommended workflow:
-
-```text
-main
- │
- ├── feature/frontend-employee-profile
- ├── feature/backend-employee-profile
- ├── feature/database-competency
- ├── feature/assessment
- └── feature/skill-gap
-```
-
-### Create a feature branch
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b feature/your-feature-name
-```
-
-### Commit changes
-
-```bash
-git add .
-git commit -m "Add employee profile form"
-```
-
-### Push the branch
-
-```bash
-git push -u origin feature/your-feature-name
-```
-
-### Pull Request
-
-After completing the work:
-
-1. Push the feature branch.
-2. Create a Pull Request on GitHub.
-3. Explain what was changed.
-4. Test the changes.
-5. Get the required review.
-6. Merge into `main`.
-
-## Important Team Rule
-
-Before starting development:
-
-```text
-Pull latest main
-      ↓
-Create feature branch
-      ↓
-Create your own local .env files
-      ↓
-Develop
-      ↓
-Test
-      ↓
-Commit
-      ↓
-Push branch
-      ↓
-Pull Request
-      ↓
-Review
-      ↓
-Merge
-```
-
-Never commit your personal `.env` or `.env.local` files.
-
-## Current Development Status
-
-### Project Setup
-
-* [x] React/Vite frontend
-* [x] Node.js/Express backend
-* [x] Supabase project
-* [x] Supabase frontend connection
-* [x] Supabase backend connection
-* [x] Supabase Authentication test
-* [x] Row Level Security
-* [x] Employee profile database table
-* [x] User profile ownership using `user_id`
-
-### Feature 1
-
-* [x] Employee profile database foundation
-* [ ] Complete employee profile form
-* [ ] Competency framework
-* [ ] Required competency profile
-* [ ] Competency assessment
-* [ ] Competency scoring
-* [ ] Skill-gap calculation
-* [ ] Skill-gap report
-
-## Development Principle
-
-Build the simplest reliable version first.
-
-AI should be introduced only when it provides a measurable advantage over rule-based or traditional approaches.
-
-The system should prioritize:
-
-* Security
-* Reliability
-* Maintainability
-* Scalability
-* User experience
-* Measurable competency outcomes
+For exhaustive technical blueprints, refer to the dedicated specifications in `docs/`:
+* [Modular Monolith Architecture (Architecture A)](./docs/architecture-a.md)
+* [Service-Oriented Architecture (Architecture B)](./docs/architecture-b.md)
+* [Architecture Comparison & Decision Paper](./docs/architecture-comparison.md)
+* [End-to-End User & System Workflows](./docs/user-flows.md)
+* [Database Architecture & ERD Specifications](./docs/database-architecture.md)
+* [AI Architecture & Guard Boundaries](./docs/ai-architecture.md)
+* [Frontend Architecture & Component Specifications](./docs/frontend-architecture.md)
+* [Backend Layered Architecture & Endpoint Specifications](./docs/backend-architecture.md)
+* [Security & Auth Architecture](./docs/security-architecture.md)
+* [System Data Flow Specification](./docs/system-data-flow.md)
