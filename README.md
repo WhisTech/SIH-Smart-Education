@@ -219,16 +219,36 @@ SIH-Smart-Education/
 
 ---
 
-## 11. Project Documentation Index
+## 11. Complete Project Documentation Directory (`/docs`)
 
-For exhaustive technical blueprints, refer to the dedicated specifications in `docs/`:
-* [Modular Monolith Architecture (Architecture A)](./docs/architecture-a.md)
-* [Service-Oriented Architecture (Architecture B)](./docs/architecture-b.md)
-* [Architecture Comparison & Decision Paper](./docs/architecture-comparison.md)
-* [End-to-End User & System Workflows](./docs/user-flows.md)
-* [Database Architecture & ERD Specifications](./docs/database-architecture.md)
-* [AI Architecture & Guard Boundaries](./docs/ai-architecture.md)
-* [Frontend Architecture & Component Specifications](./docs/frontend-architecture.md)
-* [Backend Layered Architecture & Endpoint Specifications](./docs/backend-architecture.md)
-* [Security & Auth Architecture](./docs/security-architecture.md)
-* [System Data Flow Specification](./docs/system-data-flow.md)
+For exhaustive technical blueprints, user workflows, AI architecture, API specifications, and presentation deck material, refer to the complete documentation suite in `/docs`:
+
+| File | Document Title | Description | Status |
+| :--- | :--- | :--- | :--- |
+| [`01-project-overview.md`](./docs/01-project-overview.md) | **Project Overview** | Problem statement, solution, MoSPI context, core features | `CURRENT` |
+| [`02-system-architecture.md`](./docs/02-system-architecture.md) | **System Architecture** | Main architecture diagram, layer breakdown, system components | `CURRENT` |
+| [`03-technology-stack.md`](./docs/03-technology-stack.md) | **Technology Stack** | Layer-by-layer technology matrix with codebase evidence | `CURRENT` |
+| [`04-complete-user-workflow.md`](./docs/04-complete-user-workflow.md) | **Complete User Workflow** | End-to-end platform journey diagram and step breakdown | `CURRENT` |
+| [`05-employee-workflow.md`](./docs/05-employee-workflow.md) | **Employee Workflow** | Persona-driven employee journey across 5 operational stages | `CURRENT` |
+| [`06-admin-workflow.md`](./docs/06-admin-workflow.md) | **Admin Workflow** | Proposed production admin functions & research engine demo | `PROPOSED / DEMO` |
+| [`07-authentication-workflow.md`](./docs/07-authentication-workflow.md) | **Authentication Workflow** | Supabase GoTrue Auth, JWT validation middleware, route guards | `CURRENT` |
+| [`08-assessment-workflow.md`](./docs/08-assessment-workflow.md) | **Assessment Workflow** | Dynamic Groq AI question cycle, SHA-256 fingerprinting | `CURRENT` |
+| [`09-skill-gap-analysis.md`](./docs/09-skill-gap-analysis.md) | **Skill Gap Analysis** | Deterministic gap formula ($Gap = Req - Assessed$), priority rules | `CURRENT` |
+| [`10-recommendation-engine.md`](./docs/10-recommendation-engine.md) | **Recommendation Engine** | Rule-based catalog mapping & 4-Signal Research Fusion Engine | `CURRENT` |
+| [`11-igot-learning.md`](./docs/11-igot-learning.md) | **iGOT Learning** | Verified MoSPI/NSSTA course catalog with iGOT links | `MOCK / DEMO` |
+| [`12-learning-progress.md`](./docs/12-learning-progress.md) | **Learning Progress** | Course completion lifecycle & UI tracking status | `PARTIAL` |
+| [`13-reassessment-improvement.md`](./docs/13-reassessment-improvement.md) | **Reassessment & Improvement**| Comparative score analytics (+% delta) & gap reduction | `CURRENT` |
+| [`14-mcq-generator.md`](./docs/14-mcq-generator.md) | **MCQ Generator** | Grounded PDF document processing via Gemini 3.6 Flash | `CURRENT` |
+| [`15-research-engine.md`](./docs/15-research-engine.md) | **Research Engine** | 4-Signal Fusion recommendation laboratory, TransE KG, metrics | `CURRENT` |
+| [`16-dashboard.md`](./docs/16-dashboard.md) | **Employee Dashboard** | MoSPI command dashboard layout blocks and API sources | `CURRENT` |
+| [`17-profile-management.md`](./docs/17-profile-management.md) | **Profile Management** | Cadre metadata, skill mapping, fallback cascade logic | `CURRENT` |
+| [`18-ai-architecture.md`](./docs/18-ai-architecture.md) | **AI Architecture** | Dual model allocation (Groq/Gemini) & AI guard boundaries | `CURRENT` |
+| [`19-database-architecture.md`](./docs/19-database-architecture.md) | **Database Architecture** | Supabase PostgreSQL ERD, master tables, RLS policies | `CURRENT` |
+| [`20-api-architecture.md`](./docs/20-api-architecture.md) | **API Architecture** | Complete REST endpoint directory, callers, and handlers | `CURRENT` |
+| [`21-frontend-architecture.md`](./docs/21-frontend-architecture.md) | **Frontend Architecture** | React SPA component tree, routing, layout shell, AuthContext | `CURRENT` |
+| [`22-backend-architecture.md`](./docs/22-backend-architecture.md) | **Backend Architecture** | Express gateway layering, middleware, AI & research clients | `CURRENT` |
+| [`23-security-architecture.md`](./docs/23-security-architecture.md) | **Security Architecture** | JWT validation, PostgreSQL RLS, in-memory PDF buffer safety | `CURRENT` |
+| [`24-data-flow.md`](./docs/24-data-flow.md) | **Complete Data Flow** | End-to-end data creation, transformation, storage, and usage | `CURRENT` |
+| [`25-feature-matrix.md`](./docs/25-feature-matrix.md) | **Feature Matrix** | Master capabilities table mapping status, stack, and APIs | `CURRENT` |
+| [`26-ppt-ready-content.md`](./docs/26-ppt-ready-content.md) | **PPT Ready Content** | 17 presentation slides ready for SIH 2026 evaluation | `CURRENT` |
+
