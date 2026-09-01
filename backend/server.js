@@ -183,7 +183,28 @@ app.get('/api/assessment/info', authenticateUser, async (req, res) => {
     }
 
     const { data: empSkills } = await supabase.from('employee_skills').select('skill_id').eq('employee_profile_id', profile.id);
-    const skillIds = (empSkills || []).map(s => s.skill_id);
+    let skillIds = (empSkills || []).map(s => s.skill_id);
+
+    // Fallback logic: If no explicitly selected employee skills, fetch from designation_skills or skills catalog
+    if (skillIds.length === 0 && profile.designation_id) {
+       const { data: desigSkills } = await supabase.from('designation_skills').select('skill_id').eq('designation_id', profile.designation_id);
+       if (desigSkills && desigSkills.length > 0) {
+          skillIds = desigSkills.map(s => s.skill_id);
+       }
+    }
+
+    if (skillIds.length === 0) {
+       const { data: topSkills } = await supabase.from('skills').select('id').limit(4);
+       if (topSkills && topSkills.length > 0) {
+          skillIds = topSkills.map(s => s.id);
+       }
+    }
+
+    // Auto-populate employee_skills if we resolved fallback skills
+    if (skillIds.length > 0 && (!empSkills || empSkills.length === 0)) {
+       const rowsToInsert = skillIds.map(sId => ({ employee_profile_id: profile.id, skill_id: sId }));
+       await supabase.from('employee_skills').insert(rowsToInsert).catch(console.warn);
+    }
     
     if (skillIds.length === 0) {
        return res.json({
@@ -558,11 +579,26 @@ app.post('/api/assessment/start-new', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const requestedType = req.body?.assessmentType;
 
-    const { data: profile } = await supabase.from('employee_profiles').select('id').eq('user_id', userId).maybeSingle();
+    const { data: profile } = await supabase.from('employee_profiles').select('id, designation_id').eq('user_id', userId).maybeSingle();
     if (!profile) return res.status(400).json({ success: false, message: 'Profile missing' });
 
     const { data: empSkills } = await supabase.from('employee_skills').select('skill_id').eq('employee_profile_id', profile.id);
-    const skillIds = (empSkills || []).map(s => s.skill_id);
+    let skillIds = (empSkills || []).map(s => s.skill_id);
+
+    if (skillIds.length === 0 && profile.designation_id) {
+       const { data: desigSkills } = await supabase.from('designation_skills').select('skill_id').eq('designation_id', profile.designation_id);
+       if (desigSkills && desigSkills.length > 0) {
+          skillIds = desigSkills.map(s => s.skill_id);
+       }
+    }
+
+    if (skillIds.length === 0) {
+       const { data: topSkills } = await supabase.from('skills').select('id').limit(4);
+       if (topSkills && topSkills.length > 0) {
+          skillIds = topSkills.map(s => s.id);
+       }
+    }
+
     if (skillIds.length === 0) return res.status(400).json({ success: false, message: 'No skills found' });
 
     const totalQuestions = Math.min(15, skillIds.length * 2);
@@ -1162,8 +1198,177 @@ app.post('/api/mcq/generate', (req, res, next) => {
   }
 });
 
+/* ==========================================================================
+   RESEARCH RECOMMENDATION ENGINE ENDPOINTS (COMPLETELY ISOLATED MODULE)
+   ========================================================================== */
+
+const fs = require('fs');
+const path = require('path');
+const FusionEngine = require('./research/fusionEngine');
+const MetricsEngine = require('./research/metricsEngine');
+
+let researchDataset = null;
+let researchFusionEngine = null;
+let researchMetricsEngine = null;
+
+function loadResearchEngine() {
+  if (!researchFusionEngine) {
+    const seedPath = path.join(__dirname, 'data', 'research_seed.json');
+    if (fs.existsSync(seedPath)) {
+      researchDataset = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+      researchFusionEngine = new FusionEngine(researchDataset);
+      researchMetricsEngine = new MetricsEngine(researchFusionEngine);
+    }
+  }
+}
+
+/**
+ * GET /api/research/employees
+ * Returns the list of 50 synthetic demo employees
+ */
+app.get('/api/research/employees', (req, res) => {
+  try {
+    loadResearchEngine();
+    if (!researchDataset) return res.status(500).json({ success: false, message: 'Research dataset not initialized.' });
+
+    res.json({
+      success: true,
+      metadata: researchDataset.metadata,
+      employees: researchDataset.employees
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/research/employee/:id
+ * Returns synthetic profile, skill scores, skill gaps, and assessment attempts
+ */
+app.get('/api/research/employee/:id', (req, res) => {
+  try {
+    loadResearchEngine();
+    const { id } = req.params;
+    const emp = researchDataset.employees.find(e => e.id === id || e.employee_id === id);
+    if (!emp) return res.status(404).json({ success: false, message: 'Synthetic employee not found.' });
+
+    const attempts = researchDataset.assessmentHistory.filter(a => a.employee_id === emp.id);
+    const gaps = researchDataset.skillGaps.filter(g => g.employee_id === emp.id);
+    const scores = researchDataset.skillScores.filter(s => s.employee_id === emp.id);
+    const interactions = researchDataset.courseInteractions.filter(i => i.employee_id === emp.id);
+
+    res.json({
+      success: true,
+      employee: emp,
+      assessmentHistory: attempts,
+      skillScores: scores,
+      skillGaps: gaps,
+      courseInteractions: interactions
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/research/recommendations
+ * Runs 4-Signal Fusion Recommendation algorithm
+ */
+app.post('/api/research/recommendations', (req, res) => {
+  try {
+    loadResearchEngine();
+    const { employeeId, weights } = req.body;
+    if (!employeeId) return res.status(400).json({ success: false, message: 'Missing employeeId.' });
+
+    const result = researchFusionEngine.getRecommendations(employeeId, weights || {});
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/research/metrics
+ * Returns evaluation metrics & ablation study results
+ */
+app.get('/api/research/metrics', (req, res) => {
+  try {
+    loadResearchEngine();
+    const metrics = researchMetricsEngine.evaluateAll(5);
+    const ablation = researchMetricsEngine.runAblationStudy();
+
+    res.json({
+      success: true,
+      metrics,
+      ablation
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/research/knowledge-graph
+ * Returns graph nodes and edges
+ */
+app.get('/api/research/knowledge-graph', (req, res) => {
+  try {
+    loadResearchEngine();
+    const { employeeId } = req.query;
+    let edges = researchDataset.kgEdges;
+
+    if (employeeId && employeeId !== 'undefined') {
+      const emp = researchDataset.employees.find(e => e.id === employeeId || e.employee_id === employeeId);
+      if (emp) {
+        // Find designation -> skill edges
+        const desigEdges = edges.filter(e => e.source_type === 'DESIGNATION' && e.source_id === emp.designation_id);
+        const reqSkillIds = new Set(desigEdges.map(e => e.target_id));
+        // Find course -> skill edges
+        const courseEdges = edges.filter(e => e.source_type === 'COURSE' && reqSkillIds.has(e.target_id));
+        
+        edges = [...desigEdges, ...courseEdges];
+      }
+    } else {
+      // If no specific employee, limit to a smaller global sample
+      edges = edges.slice(0, 150);
+    }
+
+    // Build unique nodes map
+    const nodes = new Map();
+    edges.forEach(e => {
+      if (!nodes.has(e.source_id)) {
+        let name = e.source_id;
+        if (e.source_type === 'DESIGNATION') name = researchDataset.employees.find(x => x.designation_id === e.source_id)?.designation_name || 'Designation';
+        if (e.source_type === 'COURSE') name = researchDataset.courses.find(x => x.id === e.source_id)?.title || 'Course';
+        if (e.source_type === 'SKILL') name = researchDataset.skills.find(x => x.id === e.source_id)?.name || 'Skill';
+        nodes.set(e.source_id, { id: e.source_id, group: e.source_type, label: name });
+      }
+      if (!nodes.has(e.target_id)) {
+        let name = e.target_id;
+        if (e.target_type === 'SKILL') name = researchDataset.skills.find(x => x.id === e.target_id)?.name || 'Skill';
+        nodes.set(e.target_id, { id: e.target_id, group: e.target_type, label: name });
+      }
+    });
+
+    res.json({
+      success: true,
+      nodesCount: nodes.size,
+      edgesCount: edges.length,
+      sampleEdges: edges.slice(0, 30),
+      nodes: Array.from(nodes.values()),
+      links: edges.map(e => ({ source: e.source_id, target: e.target_id, label: e.relation }))
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`)
 })
+

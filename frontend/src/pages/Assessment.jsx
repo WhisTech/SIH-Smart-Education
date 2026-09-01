@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import LoadingScreen from '../components/LoadingScreen'
@@ -29,17 +29,8 @@ export default function Assessment() {
   const [loadingAction, setLoadingAction] = useState(false)
   const [error, setError] = useState('')
 
-  // 1. Fetch info on mount
-  useEffect(() => {
-    if (!authLoading && user) {
-      fetchInfo();
-      if (searchParams.get('start') === 'true' && !started) {
-        handleStart(searchParams.get('type') || 'reassessment');
-      }
-    }
-  }, [authLoading, user])
-
-  const fetchInfo = async () => {
+  // 1. Fetch info function
+  const fetchInfo = useCallback(async () => {
     try {
       setInfoLoading(true)
       const { data: { session } } = await supabase.auth.getSession()
@@ -52,15 +43,75 @@ export default function Assessment() {
       } else {
         setError(data.message)
       }
-    } catch (err) {
+    } catch {
       setError('Failed to fetch assessment info.')
     } finally {
       setInfoLoading(false)
     }
-  }
+  }, [])
 
-  // 2. Start Assessment
-  const handleStart = async (type = 'initial') => {
+  // 2. Finalize Assessment function
+  const handleSubmitAssessment = useCallback(async (id) => {
+    try {
+      setLoadingAction(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${BACKEND_URL}/api/assessment/${id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ answers: {} }) // answers already saved incrementally
+      })
+
+      const contentType = res.headers.get('content-type') || ''
+      if (!res.ok || !contentType.includes('application/json')) {
+        const text = await res.text()
+        console.error('Submit Assessment Error:', res.status, text)
+        throw new Error(`Submission failed (${res.status}): ${text.substring(0, 150)}`)
+      }
+
+      const data = await res.json()
+      if (!data.success) throw new Error(data.message || data.error || 'Submission error')
+      
+      navigate(`/assessment/result/${id}`, { replace: true })
+    } catch (err) {
+      setError(err.message || 'Error submitting final assessment')
+      setLoadingAction(false)
+    }
+  }, [navigate])
+
+  // 3. Fetch Next Question function
+  const fetchNextQuestion = useCallback(async (id) => {
+    try {
+      setLoadingAction(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${BACKEND_URL}/api/assessment/${id}/next-question`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.message)
+      
+      if (data.complete) {
+         await handleSubmitAssessment(id)
+         return
+      }
+
+      // Validate question structure before updating state
+      if (!data.question || !data.question.id || !data.question.questionText || !Array.isArray(data.question.options)) {
+        throw new Error('Received malformed question from server. Please try again.')
+      }
+      
+      setCurrentQuestion(data.question)
+      setSelectedOption(null)
+      setCurrentIndex((data.question.questionOrder || 1) - 1)
+      setLoadingAction(false)
+    } catch (err) {
+      setError(err.message || 'Error fetching question')
+      setLoadingAction(false)
+    }
+  }, [handleSubmitAssessment])
+
+  // 3. Start Assessment function
+  const handleStart = useCallback(async (type = 'initial') => {
     // Sanitize type so React synthetic events are NEVER passed as type
     const finalType = typeof type === 'string' && (type === 'reassessment' || type === 'initial') ? type : 'initial'
     
@@ -90,39 +141,19 @@ export default function Assessment() {
       setError(err.message || 'Error starting assessment')
       setLoadingAction(false)
     }
-  }
+  }, [fetchNextQuestion])
 
-  // 3. Fetch Next Question
-  const fetchNextQuestion = async (id) => {
-    try {
-      setLoadingAction(true)
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`${BACKEND_URL}/api/assessment/${id}/next-question`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token}` }
-      })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.message)
-      
-      if (data.complete) {
-         await handleSubmitAssessment(id)
-         return
+  // 4. Fetch info on mount
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchInfo();
+      if (searchParams.get('start') === 'true' && !started) {
+        handleStart(searchParams.get('type') || 'reassessment');
       }
-
-      // Validate question structure before updating state
-      if (!data.question || !data.question.id || !data.question.questionText || !Array.isArray(data.question.options)) {
-        throw new Error('Received malformed question from server. Please try again.')
-      }
-      
-      setCurrentQuestion(data.question)
-      setSelectedOption(null)
-      setCurrentIndex((data.question.questionOrder || 1) - 1)
-      setLoadingAction(false)
-    } catch (err) {
-      setError(err.message || 'Error fetching question')
-      setLoadingAction(false)
     }
-  }
+  }, [authLoading, user, started, searchParams, fetchInfo, handleStart])
+
+
 
   // 4. Submit Answer & Go Next
   const handleNextQuestion = async () => {
@@ -152,33 +183,7 @@ export default function Assessment() {
     }
   }
 
-  // 5. Finalize Assessment
-  const handleSubmitAssessment = async (id) => {
-    try {
-      setLoadingAction(true)
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`${BACKEND_URL}/api/assessment/${id}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ answers: {} }) // answers already saved incrementally
-      })
 
-      const contentType = res.headers.get('content-type') || ''
-      if (!res.ok || !contentType.includes('application/json')) {
-        const text = await res.text()
-        console.error('Submit Assessment Error:', res.status, text)
-        throw new Error(`Submission failed (${res.status}): ${text.substring(0, 150)}`)
-      }
-
-      const data = await res.json()
-      if (!data.success) throw new Error(data.message || data.error || 'Submission error')
-      
-      navigate(`/assessment/result/${id}`, { replace: true })
-    } catch (err) {
-      setError(err.message || 'Error submitting final assessment')
-      setLoadingAction(false)
-    }
-  }
 
   if (authLoading || infoLoading) {
     return <LoadingScreen message="Loading AI Competency Assessment..." />

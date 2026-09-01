@@ -76,7 +76,7 @@ export default function AssessmentResult() {
   if (loading) return <LoadingScreen message="Calculating adaptive skill-wise scores & AI analysis..." />
   if (error || !result) return <div className="alert alert-error">{error || 'No assessment data.'}</div>
 
-  const { overallScore, totalQuestions, correctAnswers, skillScores, analysis } = result
+  const { overallScore, totalQuestions, correctAnswers, skillScores } = result
 
   // Rendering logic
   const renderComparison = () => {
