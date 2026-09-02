@@ -75,71 +75,130 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-layout">
-      <div className="auth-card">
-        <div className="auth-header">
-          <span className="brand-emblem large" aria-hidden="true">🏛️</span>
-          <h1>Official Employee Sign In</h1>
-          <p className="auth-subtitle">
-            Ministry of Statistics and Programme Implementation (MoSPI) · Skill Intelligence Platform
-          </p>
+    <div className="auth-split-container">
+      {/* LEFT HERO & BRANDING PANEL */}
+      <div className="auth-left-panel">
+        <div className="auth-brand-badge">
+          🏛️ MoSPI Skill Intelligence Platform
         </div>
+        
+        <h1>Ministry of Statistics &amp; Programme Implementation</h1>
+        
+        <p className="auth-left-subtitle">
+          A unified AI-powered platform for official statistical capacity building, adaptive skill assessment, and personalized iGOT Karmayogi course recommendations.
+        </p>
 
-        {error && (
-          <div className="alert alert-error" role="alert">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="form-group">
-            <label htmlFor="email">Official Email Address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. officer@mospi.gov.in"
-              autoComplete="email"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-field">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your account password"
-                autoComplete="current-password"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
+        <div className="auth-feature-list">
+          <div className="feature-bullet-card">
+            <div className="feature-icon-box">🎯</div>
+            <div className="feature-info">
+              <h3>AI Competency Assessment</h3>
+              <p>Adaptive skill evaluation driven by Groq LLaMA models with real-time competency scoring.</p>
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-block btn-lg"
-            disabled={loading}
-          >
-            {loading ? 'Signing in...' : 'Sign In to Portal'}
-          </button>
-        </form>
+          <div className="feature-bullet-card">
+            <div className="feature-icon-box">🎓</div>
+            <div className="feature-info">
+              <h3>iGOT Karmayogi Courses</h3>
+              <p>Tailored training recommendations mapped directly to official MoSPI designations and skill gaps.</p>
+            </div>
+          </div>
 
-        <p className="auth-alt">
-          New official? <Link to="/signup">Register your employee account</Link>
-        </p>
+          <div className="feature-bullet-card">
+            <div className="feature-icon-box">📊</div>
+            <div className="feature-info">
+              <h3>Research Engine &amp; Analytics</h3>
+              <p>4-Signal Fusion recommendation algorithms, TransE Knowledge Graph, and statistical copilot.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT FORM PANEL */}
+      <div className="auth-right-panel">
+        <div className="auth-form-wrapper">
+          <div className="auth-tab-group">
+            <button type="button" className="auth-tab-btn active">
+              Login
+            </button>
+            <Link to="/signup" className="auth-tab-btn">
+              Create Account
+            </Link>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f2338', margin: '0 0 6px 0' }}>
+              Welcome Back
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+              Please enter your credentials to access your official portal.
+            </p>
+          </div>
+
+          {error && (
+            <div className="alert alert-error" role="alert" style={{ marginBottom: '20px' }}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label htmlFor="email" style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block' }}>
+                Email Address *
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. officer@mospi.gov.in"
+                autoComplete="email"
+                disabled={loading}
+                style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '24px' }}>
+              <label htmlFor="password" style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block' }}>
+                Password *
+              </label>
+              <div className="password-field">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your account password"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-block btn-lg"
+              disabled={loading}
+              style={{ background: '#0f2338', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', width: '100%', cursor: 'pointer' }}
+            >
+              {loading ? 'Signing in...' : 'Sign In to Portal'}
+            </button>
+          </form>
+
+          <p style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', marginTop: '32px' }}>
+            Protected with Supabase Authentication &amp; Government Encrypted Database
+          </p>
+        </div>
       </div>
     </div>
   )

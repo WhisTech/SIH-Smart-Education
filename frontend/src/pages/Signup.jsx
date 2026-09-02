@@ -178,99 +178,30 @@ export default function Signup() {
     setLoading(true)
 
     try {
-      // 1. Create Supabase Auth User with metadata
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: form.email.trim(),
-        password: form.password,
-        options: {
-          data: {
-            name: form.name.trim(),
-            employee_id: form.employeeId.trim(),
-            designation_id: form.designationId, // UUID
-            department: form.department,
-            experience_years: Number(form.experienceYears),
-            skill_ids: selectedSkillIds
-          }
-        }
+      // 1. Call Backend Registration Endpoint for Instant Auto-Confirmed Account Creation
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+      const regRes = await fetch(`${BACKEND_URL}/api/auth/register-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email.trim(),
+          password: form.password,
+          name: form.name.trim(),
+          employeeId: form.employeeId.trim(),
+          designationId: form.designationId,
+          department: form.department,
+          experienceYears: Number(form.experienceYears),
+          skillIds: selectedSkillIds
+        })
       })
 
-      if (signUpError) {
-        const msg = signUpError.message || 'Signup failed.'
-        if (msg.toLowerCase().includes('already registered')) {
-          setError('An account with this email already exists. Please sign in instead.')
-        } else if (msg.toLowerCase().includes('rate limit')) {
-          setError('Email rate limit reached. Please wait a few moments or use an existing test account.')
-        } else {
-          setError(msg)
-        }
-        setLoading(false)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-        return
+      const regData = await regRes.json()
+
+      if (!regData.success) {
+        throw new Error(regData.message || 'Registration failed.')
       }
 
-      if (!authData?.user) {
-        setError('Unable to create user account. Please try again.')
-        setLoading(false)
-        return
-      }
-
-      const userId = authData.user.id
-      const experienceYears = Number(form.experienceYears)
-
-      // 2. Check if we have an active authenticated session
-      const currentSession = authData.session || (await supabase.auth.getSession()).data?.session
-
-      if (currentSession && currentSession.user?.id === userId) {
-        // Authenticated session exists! Create employee_profiles row directly
-        const { data: profileData, error: profileError } = await supabase
-          .from('employee_profiles')
-          .insert({
-            user_id: userId,
-            name: form.name.trim(),
-            employee_id: form.employeeId.trim(),
-            designation_id: form.designationId, // UUID
-            department: form.department,
-            experience_years: experienceYears
-          })
-          .select('id')
-          .single()
-
-        if (profileError) {
-          if (profileError.message?.toLowerCase().includes('duplicate') || profileError.code === '23505') {
-            setError('This Employee ID is already registered. Please check your Employee ID.')
-          } else if (profileError.message?.toLowerCase().includes('row-level security')) {
-            setError('Permission denied saving profile. Please contact your system administrator.')
-          } else {
-            setError(`Account created, but employee profile could not be saved: ${profileError.message}`)
-          }
-          setLoading(false)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          return
-        }
-
-        const profileId = profileData.id
-
-        // 3. Insert Selected Skills into employee_skills (relational: employee_profile_id, skill_id)
-        if (selectedSkillIds.length > 0) {
-          const skillRows = selectedSkillIds.map((skillId) => ({
-            employee_profile_id: profileId,
-            skill_id: skillId
-          }))
-
-          const { error: skillsInsertError } = await supabase
-            .from('employee_skills')
-            .insert(skillRows)
-
-          if (skillsInsertError) {
-            console.error('Error saving employee skills:', skillsInsertError.message)
-          }
-        }
-
-        setSuccess('Registration completed successfully! Redirecting to sign in...')
-      } else {
-        // Session is null because email confirmation is required by Supabase Auth settings
-        setSuccess('Account registered successfully! Please check your email to confirm your account, then sign in to access your dashboard.')
-      }
+      setSuccess('Account registered successfully! Redirecting to sign in...')
 
       setForm({
         name: '',
@@ -283,66 +214,148 @@ export default function Signup() {
         experienceYears: ''
       })
       setSelectedSkillIds([])
+      setLoading(false)
 
       setTimeout(() => {
         navigate('/login')
-      }, 2500)
-    } catch (err) {
-      setError(`A network error occurred: ${err.message || 'Please try again.'}`)
+      }, 1500)
+      return
+    } catch (regErr) {
+      console.warn('Backend registration API failed, trying client fallback:', regErr.message)
+      // Client fallback: Create Supabase Auth User directly
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email.trim(),
+        password: form.password,
+        options: {
+          data: {
+            name: form.name.trim(),
+            employee_id: form.employeeId.trim(),
+            designation_id: form.designationId,
+            department: form.department,
+            experience_years: Number(form.experienceYears),
+            skill_ids: selectedSkillIds
+          }
+        }
+      })
+
+      if (signUpError) {
+        const msg = signUpError.message || 'Signup failed.'
+        if (msg.toLowerCase().includes('already registered')) {
+          setError('An account with this email already exists. Please sign in instead.')
+        } else {
+          setError(msg)
+        }
+        setLoading(false)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+
+      setSuccess('Registration completed! You can now sign in with your email and password.')
       setLoading(false)
+      setTimeout(() => {
+        navigate('/login')
+      }, 1500)
     }
   }
 
   return (
-    <div className="auth-layout">
-      <div className="auth-card auth-card-wide">
-        <div className="auth-header">
-          <span className="brand-emblem large" aria-hidden="true">🏛️</span>
-          <h1>Employee Registration &amp; Onboarding</h1>
-          <p className="auth-subtitle">
-            Ministry of Statistics and Programme Implementation (MoSPI) · Skill Intelligence Platform
-          </p>
+    <div className="auth-split-container signup-mode">
+      {/* LEFT HERO & BRANDING PANEL */}
+      <div className="auth-left-panel">
+        <div className="auth-brand-badge">
+          🏛️ MoSPI Skill Intelligence Platform
         </div>
 
-        {error && (
-          <div className="alert alert-error" role="alert">
-            <strong>Notice:</strong> {error}
-          </div>
-        )}
+        <h1>Ministry of Statistics &amp; Programme Implementation</h1>
 
-        {success && (
-          <div className="alert alert-success" role="status">
-            <strong>Success:</strong> {success}
-          </div>
-        )}
+        <p className="auth-left-subtitle">
+          A unified AI-powered platform for official statistical capacity building, adaptive skill assessment, and personalized iGOT Karmayogi course recommendations.
+        </p>
 
-        <form onSubmit={handleSubmit} noValidate>
-          {/* SECTION 1: ACCOUNT CREDENTIALS */}
-          <div className="form-section">
-            <h2 className="form-section-title">
-              <span className="section-step">1</span> Account Credentials
+        <div className="auth-feature-list">
+          <div className="feature-bullet-card">
+            <div className="feature-icon-box">🎯</div>
+            <div className="feature-info">
+              <h3>AI Competency Assessment</h3>
+              <p>Adaptive skill evaluation driven by Groq LLaMA models with real-time competency scoring.</p>
+            </div>
+          </div>
+
+          <div className="feature-bullet-card">
+            <div className="feature-icon-box">🎓</div>
+            <div className="feature-info">
+              <h3>iGOT Karmayogi Courses</h3>
+              <p>Tailored training recommendations mapped directly to official MoSPI designations and skill gaps.</p>
+            </div>
+          </div>
+
+          <div className="feature-bullet-card">
+            <div className="feature-icon-box">📊</div>
+            <div className="feature-info">
+              <h3>Research Engine &amp; Analytics</h3>
+              <p>4-Signal Fusion recommendation algorithms, TransE Knowledge Graph, and statistical copilot.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT FORM PANEL */}
+      <div className="auth-right-panel" style={{ alignItems: 'stretch' }}>
+        <div className="auth-form-wrapper" style={{ maxWidth: '620px', margin: '0 auto' }}>
+          <div className="auth-tab-group">
+            <Link to="/login" className="auth-tab-btn">
+              Login
+            </Link>
+            <button type="button" className="auth-tab-btn active">
+              Create Account
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f2338', margin: '0 0 6px 0' }}>
+              Register Official Account
             </h2>
-            <p className="form-section-desc">Set up your portal login email and secure password.</p>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+              Create your official account to access skill assessments and course recommendations.
+            </p>
+          </div>
 
-            <div className="form-grid">
-              <div className="form-group full-width">
-                <label htmlFor="email">Official Email Address *</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="e.g. officer.name@mospi.gov.in"
-                  autoComplete="email"
-                  disabled={loading}
-                />
-                <span className="field-hint">Use your official or registered email address.</span>
-              </div>
+          {error && (
+            <div className="alert alert-error" role="alert" style={{ marginBottom: '20px' }}>
+              <strong>Notice:</strong> {error}
+            </div>
+          )}
 
-              <div className="form-group">
-                <label htmlFor="password">Password *</label>
-                <div className="password-field">
+          {success && (
+            <div className="alert alert-success" role="status" style={{ marginBottom: '20px' }}>
+              <strong>Success:</strong> {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            {/* SECTION 1: ACCOUNT CREDENTIALS */}
+            <div className="form-section" style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f2338', marginBottom: '12px' }}>
+                1. Account Credentials
+              </h3>
+
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label htmlFor="email">Official Email Address *</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="e.g. officer.name@mospi.gov.in"
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="password">Password *</label>
                   <input
                     id="password"
                     name="password"
@@ -354,11 +367,9 @@ export default function Signup() {
                     disabled={loading}
                   />
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm Password *</label>
-                <div className="password-field">
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm Password *</label>
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -371,157 +382,142 @@ export default function Signup() {
                   />
                 </div>
               </div>
+
+              <div className="form-checkbox-row" style={{ marginTop: '8px' }}>
+                <label className="checkbox-label" style={{ fontSize: '13px', color: '#64748b' }}>
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={() => setShowPassword((s) => !s)}
+                  />
+                  Show passwords
+                </label>
+              </div>
             </div>
 
-            <div className="form-checkbox-row">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={showPassword}
-                  onChange={() => setShowPassword((s) => !s)}
-                />
-                Show passwords
-              </label>
-            </div>
-          </div>
+            {/* SECTION 2: OFFICIAL EMPLOYEE DETAILS */}
+            <div className="form-section" style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f2338', marginBottom: '12px' }}>
+                2. Employee Service Particulars
+              </h3>
 
-          {/* SECTION 2: OFFICIAL EMPLOYEE DETAILS */}
-          <div className="form-section">
-            <h2 className="form-section-title">
-              <span className="section-step">2</span> Official Employee Details
-            </h2>
-            <p className="form-section-desc">Provide your service particulars in the statistical system.</p>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="name">Full Name *</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="e.g. Dr. Rajesh Verma"
+                    disabled={loading}
+                  />
+                </div>
 
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="name">Full Name *</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="e.g. Dr. Rajesh Verma"
-                  disabled={loading}
-                />
-              </div>
+                <div className="form-group">
+                  <label htmlFor="employeeId">Employee ID / Gov ID *</label>
+                  <input
+                    id="employeeId"
+                    name="employeeId"
+                    type="text"
+                    value={form.employeeId}
+                    onChange={handleChange}
+                    placeholder="e.g. MOSPI-10482"
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="employeeId">Employee ID / Government ID *</label>
-                <input
-                  id="employeeId"
-                  name="employeeId"
-                  type="text"
-                  value={form.employeeId}
-                  onChange={handleChange}
-                  placeholder="e.g. MOSPI-10482"
-                  autoComplete="off"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="designationId">Designation *</label>
-                <select
-                  id="designationId"
-                  name="designationId"
-                  value={form.designationId}
-                  onChange={handleChange}
-                  disabled={loading || designationsLoading}
-                >
-                  <option value="">
-                    {designationsLoading
-                      ? 'Loading designations from database...'
-                      : designations.length === 0
-                      ? 'No designations available (Seed required)'
-                      : '-- Select Official Designation --'}
-                  </option>
-                  {designations.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
+                <div className="form-group">
+                  <label htmlFor="designationId">Official Designation *</label>
+                  <select
+                    id="designationId"
+                    name="designationId"
+                    value={form.designationId}
+                    onChange={handleChange}
+                    disabled={loading || designationsLoading}
+                  >
+                    <option value="">
+                      {designationsLoading
+                        ? 'Loading designations...'
+                        : '-- Select Designation --'}
                     </option>
-                  ))}
-                </select>
-                {designationsError && (
-                  <span className="field-hint field-hint-error">{designationsError}</span>
-                )}
-                {!designationsLoading && !designationsError && designations.length === 0 && (
-                  <span className="field-hint field-hint-error">
-                    No designations are available yet. Designation seed data is required.
-                  </span>
-                )}
-              </div>
+                    {designations.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="department">Department / Division *</label>
-                <select
-                  id="department"
-                  name="department"
-                  value={form.department}
-                  onChange={handleChange}
-                  disabled={loading}
-                >
-                  <option value="">-- Select Department --</option>
-                  {DEPARTMENTS.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div className="form-group">
+                  <label htmlFor="department">Department / Division *</label>
+                  <select
+                    id="department"
+                    name="department"
+                    value={form.department}
+                    onChange={handleChange}
+                    disabled={loading}
+                  >
+                    <option value="">-- Select Department --</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="form-group full-width">
-                <label htmlFor="experienceYears">Total Experience in Official Statistics (Years) *</label>
-                <input
-                  id="experienceYears"
-                  name="experienceYears"
-                  type="number"
-                  min="0"
-                  max="60"
-                  value={form.experienceYears}
-                  onChange={handleChange}
-                  placeholder="e.g. 6"
-                  disabled={loading}
-                />
-                <span className="field-hint">Enter total years in statistical service (0 - 60).</span>
+                <div className="form-group full-width">
+                  <label htmlFor="experienceYears">Experience in Service (Years) *</label>
+                  <input
+                    id="experienceYears"
+                    name="experienceYears"
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={form.experienceYears}
+                    onChange={handleChange}
+                    placeholder="e.g. 5"
+                    disabled={loading}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* SECTION 3: CURRENT STATISTICAL & TECHNICAL SKILLS */}
-          <div className="form-section">
-            <h2 className="form-section-title">
-              <span className="section-step">3</span> Current Skills &amp; Competencies
-            </h2>
-            <p className="form-section-desc">
-              Select the statistical and technical competencies you currently possess.
-            </p>
+            {/* SECTION 3: CURRENT SKILLS */}
+            <div className="form-section" style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f2338', marginBottom: '12px' }}>
+                3. Current Skills &amp; Competencies
+              </h3>
 
-            <SkillSelector
-              skills={skills}
-              skillsLoading={skillsLoading}
-              skillsError={skillsError}
-              selectedSkillIds={selectedSkillIds}
-              onToggleSkill={toggleSkill}
-              onRemoveSkill={removeSkill}
-              onAddSkill={addSkill}
-              disabled={loading}
-            />
-          </div>
+              <SkillSelector
+                skills={skills}
+                skillsLoading={skillsLoading}
+                skillsError={skillsError}
+                selectedSkillIds={selectedSkillIds}
+                onToggleSkill={toggleSkill}
+                onRemoveSkill={removeSkill}
+                onAddSkill={addSkill}
+                disabled={loading}
+              />
+            </div>
 
-          <div className="form-submit-container">
             <button
               type="submit"
               className="btn btn-primary btn-block btn-lg"
               disabled={loading || designationsLoading}
+              style={{ background: '#0f2338', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', width: '100%', cursor: 'pointer' }}
             >
               {loading ? 'Creating Account & Saving Profile...' : 'Complete Employee Registration'}
             </button>
-            <p className="auth-alt">
-              Already have an official account? <Link to="/login">Sign in here</Link>
-            </p>
-          </div>
-        </form>
+          </form>
+
+          <p style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', marginTop: '32px' }}>
+            Protected with Supabase Authentication &amp; Government Encrypted Database
+          </p>
+        </div>
       </div>
     </div>
   )

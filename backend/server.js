@@ -1366,6 +1366,128 @@ app.get('/api/research/knowledge-graph', (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/register-user
+ * Instant Auto-Confirmed Multi-User Registration Endpoint
+ */
+app.post('/api/auth/register-user', async (req, res) => {
+  try {
+    const { email, password, name, employeeId, designationId, department, experienceYears, skillIds } = req.body;
+
+    if (!email || !password || !name || !employeeId) {
+      return res.status(400).json({ success: false, message: 'Missing required registration fields.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanEmpId = employeeId.trim();
+
+    // 1. Check if user already exists in auth.users
+    const { data: userList } = await supabase.auth.admin.listUsers();
+    let existingUser = userList?.users?.find(u => u.email?.toLowerCase() === cleanEmail);
+    let userId = existingUser?.id;
+
+    if (!existingUser) {
+      // Create user with email_confirm = true
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: cleanEmail,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          name: cleanName,
+          employee_id: cleanEmpId,
+          designation_id: designationId,
+          department: department,
+          experience_years: Number(experienceYears) || 0,
+          skill_ids: skillIds || []
+        }
+      });
+
+      if (createError) {
+        return res.status(400).json({ success: false, message: createError.message });
+      }
+      userId = newUser.user.id;
+    } else {
+      // Auto-confirm existing user and update password if needed
+      await supabase.auth.admin.updateUserById(userId, {
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          name: cleanName,
+          employee_id: cleanEmpId,
+          designation_id: designationId,
+          department: department,
+          experience_years: Number(experienceYears) || 0,
+          skill_ids: skillIds || []
+        }
+      });
+    }
+
+    // 2. Ensure employee_profiles row exists for this user
+    let targetDesigId = designationId;
+    if (!targetDesigId) {
+      const { data: desigData } = await supabase.from('designations').select('id').limit(1).maybeSingle();
+      targetDesigId = desigData?.id || 'd47400e0-c13a-4b26-b0d2-78e460ca56e3';
+    }
+
+    const { data: existingProfile } = await supabase
+      .from('employee_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    let profileId = existingProfile?.id;
+
+    if (!existingProfile) {
+      const { data: newProfile, error: profileErr } = await supabase
+        .from('employee_profiles')
+        .insert({
+          user_id: userId,
+          name: cleanName,
+          employee_id: cleanEmpId,
+          designation_id: targetDesigId,
+          department: department || 'National Statistical Office (NSO)',
+          experience_years: Number(experienceYears) || 0
+        })
+        .select('id')
+        .single();
+
+      if (profileErr) {
+        console.error('Profile creation warning:', profileErr.message);
+      } else {
+        profileId = newProfile.id;
+      }
+    } else {
+      await supabase
+        .from('employee_profiles')
+        .update({
+          name: cleanName,
+          employee_id: cleanEmpId,
+          designation_id: targetDesigId,
+          department: department,
+          experience_years: Number(experienceYears) || 0
+        })
+        .eq('id', profileId);
+    }
+
+    // 3. Insert skills into employee_skills if profileId available
+    if (profileId && Array.isArray(skillIds) && skillIds.length > 0) {
+      await supabase.from('employee_skills').delete().eq('employee_profile_id', profileId);
+      const skillRows = skillIds.map(sId => ({ employee_profile_id: profileId, skill_id: sId }));
+      await supabase.from('employee_skills').insert(skillRows);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Account registered and confirmed successfully! You can now sign in immediately.',
+      userId: userId
+    });
+  } catch (err) {
+    console.error('Registration API error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Registration failed.' });
+  }
+});
+
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {

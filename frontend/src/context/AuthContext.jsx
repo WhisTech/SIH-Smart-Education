@@ -28,47 +28,70 @@ export function AuthProvider({ children }) {
         .maybeSingle()
 
       if (!error && data) {
+        // If designation_id is missing/null, auto-heal with default designation ID
+        if (!data.designation_id) {
+          console.log('Auto-healing missing designation_id for profile:', data.id)
+          const { data: desigData } = await supabase.from('designations').select('id').limit(1).maybeSingle()
+          const defaultDesigId = desigData?.id || 'd47400e0-c13a-4b26-b0d2-78e460ca56e3'
+          
+          const { data: healedProfile } = await supabase
+            .from('employee_profiles')
+            .update({ designation_id: defaultDesigId })
+            .eq('id', data.id)
+            .select('*')
+            .single()
+            
+          const activeProfile = healedProfile || { ...data, designation_id: defaultDesigId }
+          setProfile(activeProfile)
+          return activeProfile
+        }
         setProfile(data)
         return data
       }
 
-      // 2. If no profile exists, check if user_metadata contains onboarding details from signup
-      const meta = currentUser.user_metadata
-      if (meta && meta.name && meta.designation_id) {
-        console.log('Auto-creating profile from user metadata under authenticated session...')
-        const { data: newProfile, error: createError } = await supabase
-          .from('employee_profiles')
-          .insert({
-            user_id: userId,
-            name: meta.name,
-            employee_id: meta.employee_id,
-            designation_id: meta.designation_id, // UUID
-            department: meta.department,
-            experience_years: meta.experience_years ?? 0
-          })
-          .select('*')
-          .single()
+      // 2. If no profile exists, check user_metadata or construct fallback profile
+      const meta = currentUser.user_metadata || {}
+      console.log('Auto-creating profile from user metadata under authenticated session...')
+      
+      // Get a default designation ID if missing
+      let targetDesigId = meta.designation_id
+      if (!targetDesigId) {
+        const { data: desigData } = await supabase.from('designations').select('id').limit(1).maybeSingle()
+        targetDesigId = desigData?.id || 'd47400e0-c13a-4b26-b0d2-78e460ca56e3'
+      }
 
-        if (!createError && newProfile) {
-          setProfile(newProfile)
+      const { data: newProfile, error: createError } = await supabase
+        .from('employee_profiles')
+        .insert({
+          user_id: userId,
+          name: meta.name || currentUser.email?.split('@')[0] || 'Official Employee',
+          employee_id: meta.employee_id || `EMP-${Date.now().toString().slice(-4)}`,
+          designation_id: targetDesigId,
+          department: meta.department || 'National Statistical Office (NSO)',
+          experience_years: meta.experience_years ?? 3
+        })
+        .select('*')
+        .single()
 
-          // Insert skills if present in metadata
-          if (Array.isArray(meta.skill_ids) && meta.skill_ids.length > 0) {
-            const skillRows = meta.skill_ids.map((skillId) => ({
-              employee_profile_id: newProfile.id,
-              skill_id: skillId
-            }))
-            try {
-              await supabase.from('employee_skills').insert(skillRows)
-            } catch (skillErr) {
-              console.warn('Error inserting initial skills:', skillErr)
-            }
+      if (!createError && newProfile) {
+        setProfile(newProfile)
+
+        // Insert skills if present in metadata
+        if (Array.isArray(meta.skill_ids) && meta.skill_ids.length > 0) {
+          const skillRows = meta.skill_ids.map((skillId) => ({
+            employee_profile_id: newProfile.id,
+            skill_id: skillId
+          }))
+          try {
+            await supabase.from('employee_skills').insert(skillRows)
+          } catch (skillErr) {
+            console.warn('Error inserting initial skills:', skillErr)
           }
-
-          return newProfile
-        } else if (createError) {
-          console.error('Error auto-creating profile from metadata:', createError.message)
         }
+
+        return newProfile
+      } else if (createError) {
+        console.error('Error auto-creating profile from metadata:', createError.message)
       }
 
       setProfile(null)
