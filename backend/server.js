@@ -714,7 +714,8 @@ app.post('/api/assessment/:assessmentId/next-question', authenticateUser, async 
     }
 
     const groqClient = require('./groqClient');
-    const qData = await groqClient.generateAdaptiveQuestion(nextSkill, nextDiff, previousTexts, previousFingerprints);
+    const lang = req.headers['accept-language'] || 'en';
+    const qData = await groqClient.generateAdaptiveQuestion(nextSkill, nextDiff, previousTexts, previousFingerprints, lang);
     
     const { data: insertedQ, error: iErr } = await supabase.from('assessment_questions').insert({
        assessment_id: assessmentId, skill_id: nextSkill.id, question_text: qData.question_text, options: qData.options,
@@ -858,11 +859,28 @@ app.post('/api/assessment/:assessmentId/submit', authenticateUser, async (req, r
       .sort((a, b) => a.score_percentage - b.score_percentage)
       .map((s) => s.skill_name);
 
-    const summaryText = `The employee scored ${overallPercentage}% overall (${correctCount} of ${totalQuestions} questions correct). ${
-      strengths.length > 0 ? `Demonstrates strong proficiency in ${strengths.join(', ')}.` : 'Performance shows scope for improvement across evaluated competencies.'
-    } ${
-      areasToImprove.length > 0 ? `Targeted training is recommended in ${areasToImprove.join(', ')}.` : 'Solid statistical performance maintained across evaluated areas.'
-    }`;
+    const lang = req.headers['accept-language'] || 'en';
+    let summaryText = '';
+    
+    if (lang === 'hi') {
+      summaryText = `कर्मचारी ने कुल मिलाकर ${overallPercentage}% (${totalQuestions} में से ${correctCount} प्रश्न सही) स्कोर किया। ${
+        strengths.length > 0 ? `निम्नलिखित में मजबूत दक्षता प्रदर्शित करता है: ${strengths.join(', ')}।` : 'मूल्यांकन की गई योग्यताओं में सुधार की गुंजाइश है।'
+      } ${
+        areasToImprove.length > 0 ? `${areasToImprove.join(', ')} में लक्षित प्रशिक्षण की सिफारिश की जाती है।` : 'मूल्यांकन किए गए क्षेत्रों में ठोस सांख्यिकीय प्रदर्शन बनाए रखा।'
+      }`;
+    } else if (lang === 'mr') {
+      summaryText = `कर्मचाऱ्याने एकूण ${overallPercentage}% (${totalQuestions} पैकी ${correctCount} प्रश्न बरोबर) गुण मिळवले आहेत. ${
+        strengths.length > 0 ? `खालील गोष्टींमध्ये मजबूत प्राविण्य दर्शवते: ${strengths.join(', ')}.` : 'मूल्यांकन केलेल्या क्षमतांमध्ये सुधारणेला वाव आहे.'
+      } ${
+        areasToImprove.length > 0 ? `${areasToImprove.join(', ')} मध्ये लक्ष्यित प्रशिक्षणाची शिफारस केली जाते.` : 'मूल्यांकन केलेल्या क्षेत्रांमध्ये भक्कम सांख्यिकीय कामगिरी राखली आहे.'
+      }`;
+    } else {
+      summaryText = `The employee scored ${overallPercentage}% overall (${correctCount} of ${totalQuestions} questions correct). ${
+        strengths.length > 0 ? `Demonstrates strong proficiency in ${strengths.join(', ')}.` : 'Performance shows scope for improvement across evaluated competencies.'
+      } ${
+        areasToImprove.length > 0 ? `Targeted training is recommended in ${areasToImprove.join(', ')}.` : 'Solid statistical performance maintained across evaluated areas.'
+      }`;
+    }
 
     await supabase.from('assessment_analyses').upsert({
       assessment_id: assessmentId,
@@ -1171,9 +1189,11 @@ app.post('/api/mcq/generate', (req, res, next) => {
     console.log(`[MCQ-Generator] Starting generation: ${finalCount} questions, Difficulty: ${difficulty}, PDF: ${req.file.originalname} (${(req.file.size / 1024).toFixed(1)} KB)`);
 
     // 3. Generate MCQs using Gemini AI with grounding & validation
+    const lang = req.headers['accept-language'] || 'en';
     const result = await generateMcqsFromPdf(req.file.buffer, {
       count: finalCount,
-      difficulty: difficulty
+      difficulty: difficulty,
+      language: lang
     });
 
     console.log(`[MCQ-Generator] Successfully generated ${result.count} MCQs`);

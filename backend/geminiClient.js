@@ -276,9 +276,14 @@ async function callGeminiApi(promptText, modelName) {
 async function generateMcqsFromPdf(pdfBuffer, options = {}) {
   const requestedCount = Math.min(Math.max(parseInt(options.count, 10) || 5, 5), 20);
   const difficulty = (options.difficulty || 'MEDIUM').toUpperCase();
+  const lang = options.language || 'en';
 
   // 1. Extract text from PDF
   const { text: pdfText, totalPages } = await extractTextFromPdf(pdfBuffer);
+  
+  const langInstruction = lang === 'hi' ? 'Generate the question, options, and explanation in Hindi.' :
+                          lang === 'mr' ? 'Generate the question, options, and explanation in Marathi.' :
+                          'Generate the question, options, and explanation in English.';
 
   // 2. Build structured prompt for Gemini
   const prompt = `
@@ -294,6 +299,7 @@ CRITICAL INSTRUCTIONS:
 6. Provide a clear, concise explanation referencing the document.
 7. Include the "sourcePage" number (integer from 1 to ${totalPages}) where the content is found in the text.
 8. The difficulty level for all questions should be "${difficulty}".
+9. LANGUAGE REQUIREMENT: ${langInstruction}
 
 REQUIRED JSON FORMAT (return a JSON array of objects):
 [
