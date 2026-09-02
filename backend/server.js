@@ -22,7 +22,33 @@ const upload = multer({
 
 const app = express()
 
-app.use(cors())
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  process.env.FRONTEND_URL
+].filter(Boolean)
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server, curl, mobile, or requests with no origin
+    if (!origin) return callback(null, true)
+
+    // Match allowedOrigins or FRONTEND_URL
+    if (allowedOrigins.includes(origin) || (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL.trim())) {
+      return callback(null, true)
+    }
+
+    // In local development (when FRONTEND_URL is not set), allow all origins
+    if (!process.env.FRONTEND_URL) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Not allowed by CORS'))
+  },
+  credentials: true
+}))
+
 app.use(express.json())
 const activeGenerations = new Set();
 
@@ -36,17 +62,11 @@ if (!supabaseUrl || !supabaseSecretKey) {
 const supabase = createClient(supabaseUrl, supabaseSecretKey)
 
 /**
- * Authentication middleware to verify Supabase JWT token or header
+ * Authentication middleware to verify Supabase JWT Bearer token
  */
 const authenticateUser = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization
-    const customUserId = req.headers['x-user-id']
-
-    if (customUserId) {
-      req.user = { id: customUserId }
-      return next()
-    }
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
@@ -74,6 +94,7 @@ const authenticateUser = async (req, res, next) => {
     })
   }
 }
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
