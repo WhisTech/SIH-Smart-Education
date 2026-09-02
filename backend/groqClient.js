@@ -152,17 +152,22 @@ async function generateQuizQuestions(skills) {
 /**
  * Generate a single adaptive quiz question WITH GUARANTEED SINGLE-CALL LIMIT (NO RETRY LOOPS)
  */
-async function generateAdaptiveQuestion(skill, difficulty, previousQuestionsText = [], previousFingerprints = []) {
+async function generateAdaptiveQuestion(skill, difficulty, previousQuestionsText = [], previousFingerprints = [], language = 'en') {
   if (groq) {
     const prevTextPrompt = previousQuestionsText.length > 0
       ? `DO NOT GENERATE ANY OF THESE PREVIOUS QUESTIONS:\n${previousQuestionsText.slice(-5).map(t => '- ' + t).join('\n')}`
       : '';
+
+    const langInstruction = language === 'hi' ? 'Generate the question, options, and explanation in Hindi.' :
+                            language === 'mr' ? 'Generate the question, options, and explanation in Marathi.' :
+                            'Generate the question, options, and explanation in English.';
 
     const prompt = `You are a Senior Assessment Specialist for India's Ministry of Statistics (MoSPI).
 Generate ONE multiple-choice competency question for official statistical employees.
 
 SKILL: "${skill.name}"
 DIFFICULTY: ${difficulty.toUpperCase()}
+LANGUAGE REQUIREMENT: ${langInstruction}
 
 SCHEMA (Output raw JSON only, no markdown):
 {"skill_id":"${skill.id}","question_text":"...","options":["Option 1","Option 2","Option 3","Option 4"],"correct_answer":"Exact option text","explanation":"...","difficulty":"${difficulty}"}
@@ -174,7 +179,7 @@ ${prevTextPrompt}
       // EXACTLY 1 AI CALL PER QUESTION - NO RETRY LOOPS!
       const response = await groq.chat.completions.create({
         messages: [
-          { role: 'system', content: 'You are an AI assessment engine. Output valid JSON only.' },
+          { role: 'system', content: 'You are an AI assessment engine. Output valid JSON only. STRICTLY respect the LANGUAGE REQUIREMENT.' },
           { role: 'user', content: prompt }
         ],
         model: ACTIVE_MODEL,
@@ -242,7 +247,7 @@ ${prevTextPrompt}
   };
 }
 
-async function generateAssessmentAnalysis(scoreData) {
+async function generateAssessmentAnalysis(scoreData, language = 'en') {
   const { overallScore, totalQuestions, correctAnswers, skillScores } = scoreData
 
   const fallbackStrengths = skillScores.filter((s) => s.score_percentage >= 80).map((s) => s.skill_name)
@@ -251,7 +256,6 @@ async function generateAssessmentAnalysis(scoreData) {
     .filter((s) => s.score_percentage < 60)
     .sort((a, b) => a.score_percentage - b.score_percentage)
     .map((s) => s.skill_name)
-
   const fallbackResult = {
     summary: `The employee scored ${overallScore}% overall (${correctAnswers} of ${totalQuestions} questions correct). ${
       fallbackStrengths.length > 0
@@ -269,6 +273,10 @@ async function generateAssessmentAnalysis(scoreData) {
 
   if (!groq) return fallbackResult
 
+  const langInstruction = language === 'hi' ? 'Generate the analysis text in Hindi.' :
+                          language === 'mr' ? 'Generate the analysis text in Marathi.' :
+                          'Generate the analysis text in English.';
+
   const prompt = `You are a Skill Intelligence Analyst for India's Ministry of Statistics (MoSPI).
 Interpret the following REAL calculated assessment scores for an employee.
 
@@ -279,6 +287,7 @@ ${skillScores.map((s) => `  * ${s.skill_name}: ${s.score_percentage}%`).join('\n
 
 RULES:
 - Identify strengths (skills >= 80%), areas to improve (skills < 60%), and priority training skills.
+- LANGUAGE REQUIREMENT: ${langInstruction}
 - Output MUST be valid JSON formatted as:
 {
   "summary": "Concise professional summary.",
@@ -291,7 +300,7 @@ RULES:
   try {
     const response = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'You are an AI assessment analyst. Respond ONLY in valid JSON.' },
+        { role: 'system', content: 'You are an AI assessment analyst. Respond ONLY in valid JSON. STRICTLY respect the LANGUAGE REQUIREMENT.' },
         { role: 'user', content: prompt }
       ],
       model: ACTIVE_MODEL,

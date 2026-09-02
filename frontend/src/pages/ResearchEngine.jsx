@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function ResearchEngine() {
+  const { t } = useTranslation()
   const [employees, setEmployees] = useState([])
   const [selectedEmpId, setSelectedEmpId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -40,7 +42,7 @@ export default function ResearchEngine() {
           setSelectedEmpId(data.employees[0].id)
         }
       } catch (err) {
-        setError(err.message || 'Failed to load research dataset.')
+        setError(err.message || t('Failed to load research dataset.'))
       } finally {
         setLoading(false)
       }
@@ -108,7 +110,7 @@ export default function ResearchEngine() {
     if (selectedEmpId) {
       setWeightSuccess('')
       await fetchRecommendations(selectedEmpId, weights)
-      setWeightSuccess('✓ Courses successfully re-ranked with custom signal weights!')
+      setWeightSuccess(t('✓ Courses successfully re-ranked with custom signal weights!'))
       setTimeout(() => setWeightSuccess(''), 4000)
     }
   }
@@ -116,8 +118,8 @@ export default function ResearchEngine() {
   if (loading) {
     return (
       <div className="research-page" style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Loading Research Recommendation Engine...</h2>
-        <p>Initializing 50 Employee profiles and TransE Knowledge Graph models.</p>
+        <h2>{t('Loading Research Recommendation Engine...')}</h2>
+        <p>{t('Initializing 50 Employee profiles and TransE Knowledge Graph models.')}</p>
       </div>
     )
   }
@@ -129,17 +131,17 @@ export default function ResearchEngine() {
       <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' }}>
-            🔬 Personalized Recommendation Engine
+            🔬 {t('Personalized Recommendation Engine')}
           </h1>
           <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-            Research Prototype: Multi-signal fusion (Knowledge Graph, Sequence Mining, Collaborative Filtering)
+            {t('Research Prototype: Multi-signal fusion (Knowledge Graph, Sequence Mining, Collaborative Filtering)')}
           </p>
         </div>
         
         {/* 2. EMPLOYEE SELECTION (Horizontal & Compact) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '10px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
           <label style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b', margin: 0 }}>
-            Target Employee:
+            {t('Target Employee:')}
           </label>
           <select
             value={selectedEmpId}
@@ -165,7 +167,7 @@ export default function ResearchEngine() {
             {/* Left: Employee Profile */}
             <div style={{ background: '#ffffff', borderRadius: '8px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 16px 0', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
-                Employee Profile
+                {t('Employee Profile')}
               </h3>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
                 <div style={{ width: '48px', height: '48px', background: '#eff6ff', color: '#3b82f6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '800' }}>
@@ -173,11 +175,11 @@ export default function ResearchEngine() {
                 </div>
                 <div>
                   <h4 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' }}>{recData.employee.name}</h4>
-                  <div style={{ fontSize: '13px', color: '#475569', marginBottom: '8px' }}>ID: <strong>{recData.employee.employee_id.replace('DEMO-', 'EMP-')}</strong></div>
+                  <div style={{ fontSize: '13px', color: '#475569', marginBottom: '8px' }}>{t('ID:')} <strong>{recData.employee.employee_id.replace('DEMO-', 'EMP-')}</strong></div>
                   <div style={{ display: 'flex', gap: '12px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
                     <span style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{recData.employee.designation_name}</span>
                     <span style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{recData.employee.department}</span>
-                    <span style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{recData.employee.experience_years}y Exp</span>
+                    <span style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{recData.employee.experience_years}{t('y Exp')}</span>
                   </div>
                 </div>
               </div>
@@ -187,14 +189,14 @@ export default function ResearchEngine() {
             <div style={{ background: '#ffffff', borderRadius: '8px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 16px 0', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                  Signal Weights
+                  {t('Signal Weights')}
                 </h3>
                 <button onClick={handleApplyWeights} disabled={recLoading} style={{ background: '#0f172a', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', opacity: recLoading ? 0.7 : 1 }}>
-                  {recLoading ? 'Re-ranking...' : 'Apply & Re-rank'}
+                  {recLoading ? t('Re-ranking...') : t('Apply & Re-rank')}
                 </button>
               </div>
               <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', marginTop: 0 }}>
-                Adjust the importance of each recommendation signal to re-rank courses.
+                {t('Adjust the importance of each recommendation signal to re-rank courses.')}
               </p>
               
               {weightSuccess && (
@@ -205,10 +207,10 @@ export default function ResearchEngine() {
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {[
-                  { label: 'Skill Gap', key: 'w_gap', val: weights.w_gap },
-                  { label: 'TransE Knowledge Graph', key: 'w_kg', val: weights.w_kg },
-                  { label: 'Sequence Mining', key: 'w_seq', val: weights.w_seq },
-                  { label: 'Collaborative Filtering', key: 'w_cf', val: weights.w_cf }
+                  { label: t('Skill Gap'), key: 'w_gap', val: weights.w_gap },
+                  { label: t('TransE Knowledge Graph'), key: 'w_kg', val: weights.w_kg },
+                  { label: t('Sequence Mining'), key: 'w_seq', val: weights.w_seq },
+                  { label: t('Collaborative Filtering'), key: 'w_cf', val: weights.w_cf }
                 ].map(w => (
                   <div key={w.key}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#1e293b' }}>
@@ -226,11 +228,11 @@ export default function ResearchEngine() {
           {/* 4. ANALYSIS NAVIGATION (Clean horizontal tabs) */}
           <div style={{ display: 'flex', gap: '2px', overflowX: 'auto', marginBottom: '24px', borderBottom: '2px solid #e2e8f0', paddingBottom: '0' }}>
             {[
-              { id: 'skill-gap', icon: '📊', label: 'Skill Gap' },
-              { id: 'kg', icon: '🌐', label: 'Knowledge Graph' },
-              { id: 'seq', icon: '🔗', label: 'Learning Sequence' },
-              { id: 'peers', icon: '👥', label: 'Similar Employees' },
-              { id: 'fusion', icon: '🎯', label: 'Recommendation Fusion' }
+              { id: 'skill-gap', icon: '📊', label: t('Skill Gap') },
+              { id: 'kg', icon: '🌐', label: t('Knowledge Graph') },
+              { id: 'seq', icon: '🔗', label: t('Learning Sequence') },
+              { id: 'peers', icon: '👥', label: t('Similar Employees') },
+              { id: 'fusion', icon: '🎯', label: t('Recommendation Fusion') }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -260,17 +262,17 @@ export default function ResearchEngine() {
             {analysisTab === 'skill-gap' && (
               <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                 <div style={{ padding: '20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Skill Gap Analysis</h3>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{t('Skill Gap Analysis')}</h3>
                 </div>
                 
                 <div style={{ overflowX: 'auto' }}>
                   <div style={{ minWidth: '700px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#f1f5f9', fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>
-                      <div>Skill Domain</div>
-                      <div>Current</div>
-                      <div>Required</div>
-                      <div>Gap</div>
-                      <div>Status</div>
+                      <div>{t('Skill Domain')}</div>
+                      <div>{t('Current')}</div>
+                      <div>{t('Required')}</div>
+                      <div>{t('Gap')}</div>
+                      <div>{t('Status')}</div>
                     </div>
                     {recData.skillScores.map((score, idx) => {
                       const gap = Math.max(0, score.required_score - score.assessed_score);
@@ -283,7 +285,7 @@ export default function ResearchEngine() {
                           <div style={{ color: isMet ? '#94a3b8' : '#ef4444', fontWeight: isMet ? '400' : '700' }}>{isMet ? '-' : `${gap}%`}</div>
                           <div>
                             <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', background: isMet ? '#dcfce7' : '#fee2e2', color: isMet ? '#15803d' : '#b91c1c' }}>
-                              {isMet ? '✓ Met' : 'Needs Improvement'}
+                              {isMet ? t('✓ Met') : t('Needs Improvement')}
                             </span>
                           </div>
                         </div>
@@ -298,13 +300,13 @@ export default function ResearchEngine() {
             {analysisTab === 'kg' && (
               <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                 <div style={{ padding: '20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Knowledge Graph (Focused)</h3>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{t('Knowledge Graph (Focused)')}</h3>
                   <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: '700', background: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                    <span style={{ color: '#1e293b' }}>👤 Designation</span>
-                    <span style={{ color: '#1d4ed8' }}>🔵 Skill</span>
-                    <span style={{ color: '#b91c1c' }}>🔴 Gap</span>
-                    <span style={{ color: '#15803d' }}>🟢 Met</span>
-                    <span style={{ color: '#a21caf' }}>🎯 Course</span>
+                    <span style={{ color: '#1e293b' }}>👤 {t('Designation')}</span>
+                    <span style={{ color: '#1d4ed8' }}>🔵 {t('Skill')}</span>
+                    <span style={{ color: '#b91c1c' }}>🔴 {t('Gap')}</span>
+                    <span style={{ color: '#15803d' }}>🟢 {t('Met')}</span>
+                    <span style={{ color: '#a21caf' }}>🎯 {t('Course')}</span>
                   </div>
                 </div>
 
@@ -336,18 +338,18 @@ export default function ResearchEngine() {
                                 </div>
                                 <div style={{ background: '#ffffff', borderRadius: '6px', padding: '10px', fontSize: '12px', border: `1px solid ${isMet ? '#bbf7d0' : '#bfdbfe'}` }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                    <span style={{ color: '#64748b' }}>Current:</span> <strong>{skill.assessed_score}%</strong>
+                                    <span style={{ color: '#64748b' }}>{t('Current:')}</span> <strong>{skill.assessed_score}%</strong>
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                    <span style={{ color: '#64748b' }}>Required:</span> <strong>{skill.required_score}%</strong>
+                                    <span style={{ color: '#64748b' }}>{t('Required:')}</span> <strong>{skill.required_score}%</strong>
                                   </div>
                                   {!isMet ? (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #cbd5e1', color: '#dc2626', fontWeight: '800' }}>
-                                      <span>🔴 Gap:</span> <span>{gap}%</span>
+                                      <span>🔴 {t('Gap:')}</span> <span>{gap}%</span>
                                     </div>
                                   ) : (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #cbd5e1', color: '#16a34a', fontWeight: '800' }}>
-                                      <span>🟢 Status:</span> <span>Met</span>
+                                      <span>🟢 {t('Status:')}</span> <span>{t('Met')}</span>
                                     </div>
                                   )}
                                 </div>
@@ -360,7 +362,7 @@ export default function ResearchEngine() {
                                     {coursesForSkill.slice(0, 3).map((course, cIdx) => (
                                       <div key={cIdx} style={{ padding: '10px 12px', background: '#fdf4ff', border: '1px solid #d946ef', borderRadius: '6px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#86198f', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                         <span>🎯 {course.courseTitle}</span>
-                                        <span style={{ fontSize: '10px', color: '#c026d3', textTransform: 'uppercase' }}>Fusion: {course.finalScore}</span>
+                                        <span style={{ fontSize: '10px', color: '#c026d3', textTransform: 'uppercase' }}>{t('Fusion:')} {course.finalScore}</span>
                                       </div>
                                     ))}
                                   </div>
@@ -380,7 +382,7 @@ export default function ResearchEngine() {
             {analysisTab === 'seq' && (
               <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                 <div style={{ padding: '20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Learning Sequence Flow</h3>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{t('Learning Sequence Flow')}</h3>
                 </div>
                 <div style={{ padding: '32px 24px', overflowX: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
                   {recData.recommendations.length > 0 ? (
@@ -391,7 +393,7 @@ export default function ResearchEngine() {
                         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 'max-content' }}>
                           <div style={{ padding: '16px', background: '#ffffff', borderLeft: '4px solid #3b82f6', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', borderRadius: '4px', minWidth: '200px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                             <div style={{ fontSize: '11px', color: '#3b82f6', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>
-                              {idx === 0 ? 'Start Here' : `Step ${idx + 1}`}
+                              {idx === 0 ? t('Start Here') : `${t('Step')} ${idx + 1}`}
                             </div>
                             <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{rec.courseTitle}</div>
                           </div>
@@ -401,7 +403,7 @@ export default function ResearchEngine() {
                         </div>
                     ))
                   ) : (
-                    <div style={{ color: '#64748b', fontStyle: 'italic' }}>No learning sequence available.</div>
+                    <div style={{ color: '#64748b', fontStyle: 'italic' }}>{t('No learning sequence available.')}</div>
                   )}
                 </div>
               </div>
@@ -411,7 +413,7 @@ export default function ResearchEngine() {
             {analysisTab === 'peers' && (
               <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                 <div style={{ padding: '20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Peer Similarity Group</h3>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{t('Peer Similarity Group')}</h3>
                 </div>
                 <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
                   {recData.similarPeers.length > 0 ? (
@@ -420,12 +422,12 @@ export default function ResearchEngine() {
                         <div style={{ width: '40px', height: '40px', background: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>👤</div>
                         <div>
                           <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>{peer.employeeId.replace('DEMO-', 'EMP-')}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>Similarity: <strong style={{ color: '#3b82f6' }}>{Math.round(peer.similarityScore * 100)}%</strong></div>
+                          <div style={{ fontSize: '12px', color: '#64748b' }}>{t('Similarity:')} <strong style={{ color: '#3b82f6' }}>{Math.round(peer.similarityScore * 100)}%</strong></div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div style={{ color: '#64748b' }}>No similar peers found with overlapping profiles.</div>
+                    <div style={{ color: '#64748b' }}>{t('No similar peers found with overlapping profiles.')}</div>
                   )}
                 </div>
               </div>
@@ -434,7 +436,7 @@ export default function ResearchEngine() {
             {/* --- CARD 5: RECOMMENDATION FUSION (Clean Breakdown) --- */}
             {analysisTab === 'fusion' && (
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 20px 0', color: '#0f172a' }}>Final Recommendations & Fusion Breakdown</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 20px 0', color: '#0f172a' }}>{t('Final Recommendations & Fusion Breakdown')}</h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   {recData.recommendations.map((item, idx) => (
@@ -445,7 +447,7 @@ export default function ResearchEngine() {
                           <span style={{ color: '#64748b', marginRight: '8px' }}>#{idx+1}</span> {item.courseTitle}
                         </h4>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Final Score</span>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{t('Final Score')}</span>
                           <span style={{ fontSize: '18px', fontWeight: '900', color: '#2563eb', background: '#eff6ff', padding: '4px 12px', borderRadius: '20px' }}>
                             {item.finalScore}
                           </span>
@@ -457,19 +459,19 @@ export default function ResearchEngine() {
                         
                         {/* Signals */}
                         <div>
-                          <h5 style={{ margin: '0 0 16px 0', fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Signal Breakdown & Weighted Contributions</h5>
+                          <h5 style={{ margin: '0 0 16px 0', fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>{t('Signal Breakdown & Weighted Contributions')}</h5>
                           
                           {[
-                            { label: 'Skill Gap', raw: item.signals.s_gap, contrib: item.weightedContributions?.w_gap ?? (item.signals.s_gap * 0.4), color: '#0f172a' },
-                            { label: 'TransE Knowledge Graph', raw: item.signals.s_kg, contrib: item.weightedContributions?.w_kg ?? (item.signals.s_kg * 0.25), color: '#2563eb' },
-                            { label: 'Sequence Mining', raw: item.signals.s_seq, contrib: item.weightedContributions?.w_seq ?? (item.signals.s_seq * 0.20), color: '#16a34a' },
-                            { label: 'Collaborative Filtering', raw: item.signals.s_cf, contrib: item.weightedContributions?.w_cf ?? (item.signals.s_cf * 0.15), color: '#9333ea' }
+                            { label: t('Skill Gap'), raw: item.signals.s_gap, contrib: item.weightedContributions?.w_gap ?? (item.signals.s_gap * 0.4), color: '#0f172a' },
+                            { label: t('TransE Knowledge Graph'), raw: item.signals.s_kg, contrib: item.weightedContributions?.w_kg ?? (item.signals.s_kg * 0.25), color: '#2563eb' },
+                            { label: t('Sequence Mining'), raw: item.signals.s_seq, contrib: item.weightedContributions?.w_seq ?? (item.signals.s_seq * 0.20), color: '#16a34a' },
+                            { label: t('Collaborative Filtering'), raw: item.signals.s_cf, contrib: item.weightedContributions?.w_cf ?? (item.signals.s_cf * 0.15), color: '#9333ea' }
                           ].map((sig, i) => (
                             <div key={i} style={{ marginBottom: '14px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
                                 <span>{sig.label}</span>
                                 <span style={{ color: '#0f172a' }}>
-                                  Signal: <strong>{(Math.round(sig.raw * 100) / 100).toFixed(2)}</strong> · Contrib: <strong style={{ color: sig.color }}>+{(Math.round(sig.contrib * 100) / 100).toFixed(2)}</strong>
+                                  {t('Signal:')} <strong>{(Math.round(sig.raw * 100) / 100).toFixed(2)}</strong> · {t('Contrib:')} <strong style={{ color: sig.color }}>+{(Math.round(sig.contrib * 100) / 100).toFixed(2)}</strong>
                                 </span>
                               </div>
                               <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
@@ -481,7 +483,7 @@ export default function ResearchEngine() {
 
                         {/* Reasons */}
                         <div>
-                          <h5 style={{ margin: '0 0 16px 0', fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Why Recommended?</h5>
+                          <h5 style={{ margin: '0 0 16px 0', fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>{t('Why Recommended?')}</h5>
                           <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#334155', lineHeight: '1.6' }}>
                             {item.reasons.map((r, rIdx) => (
                               <li key={rIdx} style={{ marginBottom: '8px' }}>{r}</li>
@@ -502,4 +504,3 @@ export default function ResearchEngine() {
     </div>
   )
 }
-

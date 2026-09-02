@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchDesignations } from '../lib/referenceData'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function IgotDashboard() {
   const { profile } = useAuth()
+  const { t } = useTranslation()
 
   const [designations, setDesignations] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -164,14 +166,14 @@ export default function IgotDashboard() {
       {/* Header Banner */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">iGOT Karmayogi Learning Portal</h1>
+          <h1 className="page-title">{t('igot.title')}</h1>
           <p className="page-subtitle">
-            Personalized course recommendations &amp; designation-aligned capacity building
+            {t('igot.subtitle')}
           </p>
         </div>
         <div className="header-actions">
           <Link to="/assessment" className="btn btn-outline btn-sm">
-            Take AI Assessment
+            {t('dashboard.start_assessment')}
           </Link>
         </div>
       </div>
@@ -179,7 +181,7 @@ export default function IgotDashboard() {
       {/* Designation Banner */}
       <div className="card desig-banner-card">
         <div className="banner-desig-info">
-          <span className="banner-label">Active Official Designation</span>
+          <span className="banner-label">{t('profile.designation')}</span>
           <h2 className="banner-desig-title">
             <span className="desig-icon">💼</span> {employeeDesignationName}
           </h2>
@@ -204,12 +206,12 @@ export default function IgotDashboard() {
       {/* FEATURE: PERSONALIZED RECOMMENDATIONS BASED ON SKILL-GAP ANALYSIS */}
       <div className="card personalized-recs-card">
         <div className="section-title-sm">
-          <h2 className="card-section-title">⚡ AI-Recommended Courses for Skill Gaps</h2>
+          <h2 className="card-section-title">⚡ {t('result.course_recs')}</h2>
           <span className="tag tag-ai">Assessed Skill-Gap Analysis</span>
         </div>
 
         {recsLoading ? (
-          <p className="loading-text">Loading personalized recommendations...</p>
+          <p className="loading-text">{t('system.loading')}</p>
         ) : recommendations.length === 0 ? (
           <div className="empty-recs-notice">
             <p>No skill-gap recommendations generated yet.</p>
@@ -269,7 +271,7 @@ export default function IgotDashboard() {
                   </p>
                </div>
                <Link to="/reassessment" className="btn btn-primary btn-sm" style={{ fontWeight: '600', padding: '10px 18px' }}>
-                  🎯 Start Reassessment &rarr;
+                  🎯 {t('reassessment.start_reassessment')} &rarr;
                </Link>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const COMMON_SKILL_NAMES = [
   'Statistical Analysis',
@@ -21,6 +22,7 @@ export default function SkillSelector({
   onAddSkill,
   disabled = false
 }) {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -125,8 +127,8 @@ export default function SkillSelector({
             className="skill-search-input-box"
             placeholder={
               skillsLoading
-                ? 'Loading skills catalog...'
-                : 'Search skills catalog (e.g. regression, python, survey, data)...'
+                ? t('system.loading')
+                : t('profile.search_skills') || 'Search skills...'
             }
             value={searchQuery}
             onChange={(e) => {
@@ -200,7 +202,7 @@ export default function SkillSelector({
       {/* 2. COMMON SKILLS QUICK SELECTION SHORTCUTS */}
       {commonSkills.length > 0 && (
         <div className="common-skills-block">
-          <span className="common-skills-title">Common Skills</span>
+          <span className="common-skills-title">{t('profile.common_skills')}</span>
           <div className="common-skills-pills">
             {commonSkills.map((s) => {
               const isSelected = selectedSkillIds.includes(s.id)
@@ -225,12 +227,12 @@ export default function SkillSelector({
       {/* 3. SELECTED SKILLS CHIPS */}
       <div className="selected-skills-block">
         <span className="selected-skills-title">
-          Selected Skills ({selectedSkillIds.length})
+          {t('profile.selected_skills')} ({selectedSkillIds.length})
         </span>
 
         {selectedSkillIds.length === 0 ? (
           <p className="no-skills-selected">
-            No skills selected yet. Click a common skill or search above.
+            {t('profile.no_skills_selected') || 'No skills selected yet. Click a common skill or search above.'}
           </p>
         ) : (
           <div className="skill-chips-container" aria-label="Selected skills list">
