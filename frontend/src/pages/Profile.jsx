@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { fetchDesignations, fetchSkills } from '../lib/referenceData'
 import LoadingScreen from '../components/LoadingScreen'
 import SkillSelector from '../components/SkillSelector'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
@@ -24,6 +25,7 @@ const DEPARTMENTS = [
 ]
 
 export default function Profile() {
+  const { t } = useTranslation()
   const { user, profile, loading: authLoading, profileLoading, reloadProfile } = useAuth()
 
   // UI state
@@ -240,17 +242,17 @@ export default function Profile() {
   }
 
   const validate = () => {
-    if (!form.name.trim()) return 'Full Name is required.'
-    if (!form.employee_id.trim()) return 'Employee ID is required.'
-    if (!form.designation_id) return 'Please select a valid designation.'
+    if (!form.name.trim()) return t('Full Name is required.')
+    if (!form.employee_id.trim()) return t('Employee ID is required.')
+    if (!form.designation_id) return t('Please select a valid designation.')
     if (!designations.some((d) => d.id === form.designation_id)) {
-      return 'The selected designation is no longer available. Please choose again.'
+      return t('The selected designation is no longer available. Please choose again.')
     }
-    if (!form.department) return 'Please select a department.'
-    if (form.experience_years === '') return 'Experience years is required.'
+    if (!form.department) return t('Please select a department.')
+    if (form.experience_years === '') return t('Experience years is required.')
     const years = Number(form.experience_years)
     if (Number.isNaN(years) || years < 0 || years > 60) {
-      return 'Experience years must be a number between 0 and 60.'
+      return t('Experience years must be a number between 0 and 60.')
     }
     return null
   }
@@ -292,11 +294,11 @@ export default function Profile() {
 
       if (profileUpdateError) {
         if (profileUpdateError.message?.toLowerCase().includes('duplicate') || profileUpdateError.code === '23505') {
-          setError('This Employee ID is already registered to another account.')
+          setError(t('This Employee ID is already registered to another account.'))
         } else if (profileUpdateError.message?.toLowerCase().includes('row-level security')) {
-          setError('Permission error updating profile. Please check your credentials.')
+          setError(t('Permission error updating profile. Please check your credentials.'))
         } else {
-          setError(`Unable to save profile changes: ${profileUpdateError.message}`)
+          setError(`${t('Unable to save profile changes:')} ${profileUpdateError.message}`)
         }
         setSaving(false)
         return
@@ -338,26 +340,26 @@ export default function Profile() {
       await reloadProfile()
       setSkillsVersion((v) => v + 1)
 
-      setSuccess('Your profile and skills have been successfully saved.')
+      setSuccess(t('Your profile and skills have been successfully saved.'))
       setIsEditing(false)
     } catch (err) {
-      setError(`A network error occurred while saving: ${err.message || 'Please try again.'}`)
+      setError(`${t('A network error occurred while saving:')} ${err.message || t('Please try again.')}`)
     } finally {
       setSaving(false)
     }
   }
 
   if (authLoading || profileLoading) {
-    return <LoadingScreen message="Loading your official profile..." />
+    return <LoadingScreen message={t('Loading your official profile...')} />
   }
 
   return (
     <div className="profile-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Official Employee Profile</h1>
+          <h1 className="page-title">{t('Official Employee Profile')}</h1>
           <p className="page-subtitle">
-            Manage your service particulars, verified competencies, and AI assessment performance
+            {t('Manage your service particulars, verified competencies, and AI assessment performance')}
           </p>
         </div>
         {!isEditing && profile && (
@@ -366,36 +368,36 @@ export default function Profile() {
             className="btn btn-primary"
             onClick={startEditing}
           >
-            Edit Profile &amp; Skills
+            {t('Edit Profile & Skills')}
           </button>
         )}
       </div>
 
       {error && (
         <div className="alert alert-error" role="alert">
-          <strong>Notice:</strong> {error}
+          <strong>{t('Notice:')}</strong> {error}
         </div>
       )}
 
       {success && (
         <div className="alert alert-success" role="status">
-          <strong>Success:</strong> {success}
+          <strong>{t('Success:')}</strong> {success}
         </div>
       )}
 
       {!profile && !isEditing ? (
         <div className="empty-state">
           <span className="brand-emblem large" aria-hidden="true">⚠️</span>
-          <h2>Employee Profile Not Set Up</h2>
+          <h2>{t('Employee Profile Not Set Up')}</h2>
           <p>
-            No employee profile record is currently linked to your account. You can complete your official profile and current skills now.
+            {t('No employee profile record is currently linked to your account. You can complete your official profile and current skills now.')}
           </p>
           <button
             type="button"
             className="btn btn-primary"
             onClick={startEditing}
           >
-            + Set Up Profile &amp; Skills Now
+            {t('+ Set Up Profile & Skills Now')}
           </button>
         </div>
       ) : !isEditing ? (
@@ -403,45 +405,45 @@ export default function Profile() {
         <div className="profile-view-grid">
           {/* Card 1: Official Particulars */}
           <div className="card">
-            <h2 className="card-section-title">Official Particulars</h2>
+            <h2 className="card-section-title">{t('Official Particulars')}</h2>
             <div className="profile-details-table">
               <div className="profile-row">
-                <span className="profile-label">Full Name</span>
+                <span className="profile-label">{t('Full Name')}</span>
                 <span className="profile-value strong">{profile.name || '—'}</span>
               </div>
 
               <div className="profile-row">
-                <span className="profile-label">Employee / Gov ID</span>
+                <span className="profile-label">{t('Employee / Gov ID')}</span>
                 <span className="profile-value">
                   <code>{profile.employee_id || '—'}</code>
                 </span>
               </div>
 
               <div className="profile-row">
-                <span className="profile-label">Email Address</span>
+                <span className="profile-label">{t('Email Address')}</span>
                 <span className="profile-value">
                   {user?.email || '—'}
-                  <span className="tag tag-auth">Verified Login</span>
+                  <span className="tag tag-auth">{t('Verified Login')}</span>
                 </span>
               </div>
 
               <div className="profile-row">
-                <span className="profile-label">Official Designation</span>
+                <span className="profile-label">{t('Official Designation')}</span>
                 <span className="profile-value">
                   {getDesignationName(profile.designation_id)}
                 </span>
               </div>
 
               <div className="profile-row">
-                <span className="profile-label">Department / Division</span>
+                <span className="profile-label">{t('Department / Division')}</span>
                 <span className="profile-value">{profile.department || '—'}</span>
               </div>
 
               <div className="profile-row">
-                <span className="profile-label">Experience in Statistics</span>
+                <span className="profile-label">{t('Experience in Statistics')}</span>
                 <span className="profile-value">
                   {profile.experience_years != null
-                    ? `${profile.experience_years} Years`
+                    ? `${profile.experience_years} ${t('Years')}`
                     : '—'}
                 </span>
               </div>
@@ -451,28 +453,28 @@ export default function Profile() {
           {/* Card 2: Current Competencies & Skills */}
           <div className="card">
             <div className="section-title-sm">
-              <h2 className="card-section-title">Verified Skills &amp; Competencies</h2>
-              <span className="badge-count">{employeeSkills.length} Skills</span>
+              <h2 className="card-section-title">{t('Verified Skills & Competencies')}</h2>
+              <span className="badge-count">{employeeSkills.length} {t('Skills')}</span>
             </div>
 
             {employeeSkillsLoading ? (
-              <p className="loading-text">Loading skills...</p>
+              <p className="loading-text">{t('Loading skills...')}</p>
             ) : employeeSkills.length === 0 ? (
               <div className="empty-skills-notice">
-                <p>No skills recorded yet for your profile.</p>
+                <p>{t('No skills recorded yet for your profile.')}</p>
                 <button
                   type="button"
                   className="btn btn-outline btn-sm"
                   onClick={startEditing}
                 >
-                  + Add Your Skills
+                  {t('+ Add Your Skills')}
                 </button>
               </div>
             ) : (
               <div className="profile-skills-grid">
                 {employeeSkills.map((s) => (
                   <div key={s.id} className="profile-skill-badge">
-                    <span className="badge-cat">{s.category || 'Skill'}</span>
+                    <span className="badge-cat">{s.category || t('Skill')}</span>
                     <span className="badge-name">{s.name}</span>
                     {s.description && (
                       <span className="badge-desc">{s.description}</span>
@@ -486,19 +488,19 @@ export default function Profile() {
           {/* Card 3: FEATURE 11 & 12 — ASSESSMENT SUMMARY & HISTORY */}
           <div className="card profile-assessment-card full-width-card">
             <div className="section-title-sm">
-              <h2 className="card-section-title">AI Assessment Performance &amp; History</h2>
+              <h2 className="card-section-title">{t('AI Assessment Performance & History')}</h2>
               <Link to="/assessment" className="btn btn-primary btn-sm">
-                + Start Assessment
+                {t('+ Start Assessment')}
               </Link>
             </div>
 
             {assessmentLoading ? (
-              <p className="loading-text">Loading assessment history...</p>
+              <p className="loading-text">{t('Loading assessment history...')}</p>
             ) : !latestAssessment ? (
               <div className="empty-assessment-notice">
-                <p>No assessment attempts recorded yet.</p>
+                <p>{t('No assessment attempts recorded yet.')}</p>
                 <Link to="/assessment" className="btn btn-primary btn-sm">
-                  Take Your First AI Competency Assessment
+                  {t('Take Your First AI Competency Assessment')}
                 </Link>
               </div>
             ) : (
@@ -507,13 +509,13 @@ export default function Profile() {
                 <div className="assessment-summary-row">
                   <div className="summary-stat-box">
                     <span className="stat-num">{Math.round(latestAssessment.overallScore)}%</span>
-                    <span className="stat-lbl">Overall Competency Score</span>
+                    <span className="stat-lbl">{t('Overall Competency Score')}</span>
                   </div>
 
                   <div className="summary-highlights-box">
                     {latestAssessment.strengths && latestAssessment.strengths.length > 0 && (
                       <div className="highlight-item">
-                        <span className="hl-label">Strong Skills:</span>
+                        <span className="hl-label">{t('Strong Skills:')}</span>
                         <div className="hl-tags">
                           {latestAssessment.strengths.map((s, i) => (
                             <span key={i} className="chip chip-success">✓ {s}</span>
@@ -524,7 +526,7 @@ export default function Profile() {
 
                     {latestAssessment.areasToImprove && latestAssessment.areasToImprove.length > 0 && (
                       <div className="highlight-item">
-                        <span className="hl-label">Needs Improvement:</span>
+                        <span className="hl-label">{t('Needs Improvement:')}</span>
                         <div className="hl-tags">
                           {latestAssessment.areasToImprove.map((s, i) => (
                             <span key={i} className="chip chip-warning">⚠ {s}</span>
@@ -539,7 +541,7 @@ export default function Profile() {
                       to={`/assessment/result/${latestAssessment.assessmentId}`}
                       className="btn btn-outline"
                     >
-                      View Full Assessment Result
+                      {t('View Full Assessment Result')}
                     </Link>
                   </div>
                 </div>
@@ -547,16 +549,16 @@ export default function Profile() {
                 {/* History Table */}
                 {historyList && historyList.length > 0 && (
                   <div className="assessment-history-section">
-                    <h3 className="history-title">Assessment History</h3>
+                    <h3 className="history-title">{t('Assessment History')}</h3>
                     <div className="history-table-wrapper">
                       <table className="history-table">
                         <thead>
                           <tr>
-                            <th>Completion Date</th>
-                            <th>Questions Correct</th>
-                            <th>Overall Score</th>
-                            <th>Status</th>
-                            <th>Action</th>
+                            <th>{t('Completion Date')}</th>
+                            <th>{t('Questions Correct')}</th>
+                            <th>{t('Overall Score')}</th>
+                            <th>{t('Status')}</th>
+                            <th>{t('Action')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -568,14 +570,14 @@ export default function Profile() {
                                 <strong>{Math.round(item.scorePercentage)}%</strong>
                               </td>
                               <td>
-                                <span className="tag tag-success">Completed</span>
+                                <span className="tag tag-success">{t('Completed')}</span>
                               </td>
                               <td>
                                 <Link
                                   to={`/assessment/result/${item.assessmentId}`}
                                   className="link-sm"
                                 >
-                                  View Result
+                                  {t('View Result')}
                                 </Link>
                               </td>
                             </tr>
@@ -594,16 +596,16 @@ export default function Profile() {
         <div className="card edit-card">
           <form onSubmit={handleSubmit} noValidate>
             <div className="edit-form-header">
-              <h2>{profile ? 'Edit Employee Profile & Skills' : 'Set Up Employee Profile & Skills'}</h2>
-              <p className="muted">Enter your official details and mapped competencies.</p>
+              <h2>{profile ? t('Edit Employee Profile & Skills') : t('Set Up Employee Profile & Skills')}</h2>
+              <p className="muted">{t('Enter your official details and mapped competencies.')}</p>
             </div>
 
             {/* Sub-section: Particulars */}
             <div className="form-section">
-              <h3 className="form-section-title">1. Employee Information</h3>
+              <h3 className="form-section-title">{t('1. Employee Information')}</h3>
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="name">Full Name *</label>
+                  <label htmlFor="name">{t('Full Name *')}</label>
                   <input
                     id="name"
                     name="name"
@@ -615,7 +617,7 @@ export default function Profile() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="employee_id">Employee ID *</label>
+                  <label htmlFor="employee_id">{t('Employee ID *')}</label>
                   <input
                     id="employee_id"
                     name="employee_id"
@@ -627,7 +629,7 @@ export default function Profile() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="designation_id">Designation *</label>
+                  <label htmlFor="designation_id">{t('Designation *')}</label>
                   <select
                     id="designation_id"
                     name="designation_id"
@@ -636,7 +638,7 @@ export default function Profile() {
                     disabled={saving || designationsLoading}
                   >
                     <option value="">
-                      {designationsLoading ? 'Loading designations...' : '-- Select Designation --'}
+                      {designationsLoading ? t('Loading designations...') : t('-- Select Designation --')}
                     </option>
                     {designations.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -647,7 +649,7 @@ export default function Profile() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="department">Department / Division *</label>
+                  <label htmlFor="department">{t('Department / Division *')}</label>
                   <select
                     id="department"
                     name="department"
@@ -655,7 +657,7 @@ export default function Profile() {
                     onChange={handleChange}
                     disabled={saving}
                   >
-                    <option value="">-- Select Department --</option>
+                    <option value="">{t('-- Select Department --')}</option>
                     {DEPARTMENTS.map((dept) => (
                       <option key={dept} value={dept}>
                         {dept}
@@ -665,7 +667,7 @@ export default function Profile() {
                 </div>
 
                 <div className="form-group full-width">
-                  <label htmlFor="experience_years">Experience in Statistics (Years) *</label>
+                  <label htmlFor="experience_years">{t('Experience in Statistics (Years) *')}</label>
                   <input
                     id="experience_years"
                     name="experience_years"
@@ -682,9 +684,9 @@ export default function Profile() {
 
             {/* Sub-section: Skills Selection */}
             <div className="form-section">
-              <h3 className="form-section-title">2. Manage Current Skills</h3>
+              <h3 className="form-section-title">{t('2. Manage Current Skills')}</h3>
               <p className="form-section-desc">
-                Select or deselect skills to update your current competency portfolio.
+                {t('Select or deselect skills to update your current competency portfolio.')}
               </p>
 
               <SkillSelector
@@ -707,7 +709,7 @@ export default function Profile() {
                   onClick={cancelEditing}
                   disabled={saving}
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
               )}
               <button
@@ -715,7 +717,7 @@ export default function Profile() {
                 className="btn btn-primary"
                 disabled={saving}
               >
-                {saving ? 'Saving Profile...' : 'Save Profile & Skills'}
+                {saving ? t('Saving Profile...') : t('Save Profile & Skills')}
               </button>
             </div>
           </form>

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { fetchDesignations, fetchSkills } from '../lib/referenceData'
 import SkillSelector from '../components/SkillSelector'
+import { useTranslation } from 'react-i18next'
+import LanguageSelector from '../components/LanguageSelector'
 
 // Standard Ministry of Statistics & Programme Implementation Departments
 const DEPARTMENTS = [
@@ -22,6 +24,7 @@ const DEPARTMENTS = [
 
 export default function Signup() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Form input state
   const [form, setForm] = useState({
@@ -126,24 +129,24 @@ export default function Signup() {
 
   const validate = () => {
     // 1. Account validation
-    if (!form.name.trim()) return 'Full Name is required.'
-    if (!form.email.trim()) return 'Email address is required.'
+    if (!form.name.trim()) return t('auth.name_req')
+    if (!form.email.trim()) return t('auth.email_req')
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailPattern.test(form.email.trim())) {
-      return 'Please enter a valid email address (e.g. officer@mospi.gov.in).'
+      return t('auth.email_invalid')
     }
-    if (!form.password) return 'Password is required.'
-    if (form.password.length < 6) return 'Password must be at least 6 characters long.'
-    if (!form.confirmPassword) return 'Please confirm your password.'
-    if (form.password !== form.confirmPassword) return 'Passwords do not match.'
+    if (!form.password) return t('auth.password_req')
+    if (form.password.length < 6) return t('auth.password_min')
+    if (!form.confirmPassword) return 'Please confirm your password.' // Hardcoded fallback for now, as requested to use available keys
+    if (form.password !== form.confirmPassword) return 'Passwords do not match.' // Hardcoded fallback for now
 
     // 2. Employee Info validation
-    if (!form.employeeId.trim()) return 'Employee ID is required.'
-    if (!form.designationId) return 'Please select your designation.'
+    if (!form.employeeId.trim()) return 'Employee ID is required.' // Hardcoded fallback for now
+    if (!form.designationId) return t('auth.designation_req')
     if (!designations.some((d) => d.id === form.designationId)) {
       return 'The selected designation is not valid. Please choose from the list.'
     }
-    if (!form.department) return 'Please select your department.'
+    if (!form.department) return t('auth.department_req')
     if (form.experienceYears === '') return 'Years of experience is required.'
     const years = Number(form.experienceYears)
     if (Number.isNaN(years) || years < 0 || years > 60) {
@@ -263,37 +266,37 @@ export default function Signup() {
       {/* LEFT HERO & BRANDING PANEL */}
       <div className="auth-left-panel">
         <div className="auth-brand-badge">
-          🏛️ MoSPI Skill Intelligence Platform
+          {t('auth.brand_badge')}
         </div>
 
-        <h1>Ministry of Statistics &amp; Programme Implementation</h1>
+        <h1>{t('auth.brand_title')}</h1>
 
         <p className="auth-left-subtitle">
-          A unified AI-powered platform for official statistical capacity building, adaptive skill assessment, and personalized iGOT Karmayogi course recommendations.
+          {t('auth.brand_subtitle')}
         </p>
 
         <div className="auth-feature-list">
           <div className="feature-bullet-card">
             <div className="feature-icon-box">🎯</div>
             <div className="feature-info">
-              <h3>AI Competency Assessment</h3>
-              <p>Adaptive skill evaluation driven by Groq LLaMA models with real-time competency scoring.</p>
+              <h3>{t('auth.feature_1_title')}</h3>
+              <p>{t('auth.feature_1_desc')}</p>
             </div>
           </div>
 
           <div className="feature-bullet-card">
             <div className="feature-icon-box">🎓</div>
             <div className="feature-info">
-              <h3>iGOT Karmayogi Courses</h3>
-              <p>Tailored training recommendations mapped directly to official MoSPI designations and skill gaps.</p>
+              <h3>{t('auth.feature_2_title')}</h3>
+              <p>{t('auth.feature_2_desc')}</p>
             </div>
           </div>
 
           <div className="feature-bullet-card">
             <div className="feature-icon-box">📊</div>
             <div className="feature-info">
-              <h3>Research Engine &amp; Analytics</h3>
-              <p>4-Signal Fusion recommendation algorithms, TransE Knowledge Graph, and statistical copilot.</p>
+              <h3>{t('auth.feature_3_title')}</h3>
+              <p>{t('auth.feature_3_desc')}</p>
             </div>
           </div>
         </div>
@@ -301,22 +304,25 @@ export default function Signup() {
 
       {/* RIGHT FORM PANEL */}
       <div className="auth-right-panel" style={{ alignItems: 'stretch' }}>
+        <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+          <LanguageSelector />
+        </div>
         <div className="auth-form-wrapper" style={{ maxWidth: '620px', margin: '0 auto' }}>
           <div className="auth-tab-group">
             <Link to="/login" className="auth-tab-btn">
-              Login
+              {t('auth.login_tab')}
             </Link>
             <button type="button" className="auth-tab-btn active">
-              Create Account
+              {t('auth.signup_tab')}
             </button>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f2338', margin: '0 0 6px 0' }}>
-              Register Official Account
+              {t('auth.signup_welcome')}
             </h2>
             <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
-              Create your official account to access skill assessments and course recommendations.
+              {t('auth.signup_desc')}
             </p>
           </div>
 

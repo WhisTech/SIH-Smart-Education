@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchDesignations, fetchSkills } from '../lib/referenceData'
 import LoadingScreen from '../components/LoadingScreen'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function Dashboard() {
   const { user, profile, profileLoading } = useAuth()
+  const { t } = useTranslation()
 
   const [designations, setDesignations] = useState([])
   const [employeeSkills, setEmployeeSkills] = useState([])
@@ -108,7 +110,7 @@ export default function Dashboard() {
   }, [profile?.id])
 
   if (profileLoading) {
-    return <LoadingScreen message="Loading official dashboard..." />
+    return <LoadingScreen message={t('system.loading')} />
   }
 
   // Lookup designation name
@@ -128,7 +130,7 @@ export default function Dashboard() {
       <div className="dashboard-header">
         <div className="avatar" aria-hidden="true">{firstInitial}</div>
         <div className="dashboard-header-info">
-          <h1>{profile?.name || 'Welcome, Official'}</h1>
+          <h1>{profile?.name || t('dashboard.welcome')}</h1>
           <p className="muted">
             {user?.email} · {profile?.department || 'Official Statistical System'}
           </p>
@@ -150,26 +152,26 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="section-title">
-            <h2>Employee Overview</h2>
+            <h2>{t('dashboard.overview')}</h2>
             <Link to="/profile" className="btn btn-outline btn-sm">
-              View / Edit Profile
+              {t('profile.edit')}
             </Link>
           </div>
 
           {/* Quick Statistics Grid */}
           <div className="stat-grid">
             <div className="stat-card">
-              <span className="stat-label">Employee ID</span>
+              <span className="stat-label">{t('profile.employee_id')}</span>
               <span className="stat-value"><code>{profile.employee_id || '—'}</code></span>
             </div>
 
             <div className="stat-card">
-              <span className="stat-label">Official Designation</span>
+              <span className="stat-label">{t('profile.designation')}</span>
               <span className="stat-value">{designationName}</span>
             </div>
 
             <div className="stat-card">
-              <span className="stat-label">Department / Division</span>
+              <span className="stat-label">{t('profile.department')}</span>
               <span className="stat-value">{profile.department || '—'}</span>
             </div>
 
@@ -184,14 +186,14 @@ export default function Dashboard() {
           {/* FEATURE 10: AI COMPETENCY ASSESSMENT DASHBOARD SECTION */}
           <div className="card assessment-dashboard-card">
             <div className="section-title-sm">
-              <h3 className="card-section-title">AI Competency Assessment</h3>
+              <h3 className="card-section-title">{t('nav.assessment')}</h3>
               <Link to="/assessment" className="btn btn-primary btn-sm">
-                + Start Assessment
+                + {t('dashboard.start_assessment')}
               </Link>
             </div>
 
             {assessmentLoading ? (
-              <p className="loading-text">Loading assessment data...</p>
+              <p className="loading-text">{t('system.loading')}</p>
             ) : !latestAssessment ? (
               <div className="empty-assessment-notice">
                 <p>No assessment completed yet.</p>
@@ -199,14 +201,14 @@ export default function Dashboard() {
                   Take the AI competency assessment to evaluate your current proficiency across your active skills.
                 </p>
                 <Link to="/assessment" className="btn btn-primary">
-                  Start Your First Assessment
+                  {t('dashboard.start_assessment')}
                 </Link>
               </div>
             ) : (
               <div className="latest-assessment-summary">
                 <div className="latest-score-banner">
                   <div className="score-main-box">
-                    <span className="score-label">Latest Score</span>
+                    <span className="score-label">{t('result.score')}</span>
                     <span className="score-big">{Math.round(latestAssessment.overallScore)}%</span>
                   </div>
                   <div className="score-meta">
@@ -222,20 +224,20 @@ export default function Dashboard() {
                       to="/reassessment"
                       className="btn btn-primary btn-sm"
                     >
-                      🎯 Start Reassessment
+                      🎯 {t('reassessment.start_reassessment')}
                     </Link>
                     <Link
                       to={`/assessment/result/${latestAssessment.assessmentId}`}
                       className="btn btn-outline btn-sm"
                     >
-                      View Assessment Result
+                      {t('result.title')}
                     </Link>
                   </div>
                 </div>
 
                 {latestAssessment.skillScores && latestAssessment.skillScores.length > 0 && (
                   <div className="dashboard-skill-scores-grid">
-                    <h4 className="scores-subtitle">Skill Performance Breakdown:</h4>
+                    <h4 className="scores-subtitle">{t('dashboard.skill_distribution')}:</h4>
                     <div className="skill-bars-list">
                       {latestAssessment.skillScores.map((ss) => (
                         <div key={ss.skillId} className="dashboard-skill-bar-row">
@@ -256,27 +258,27 @@ export default function Dashboard() {
           {/* Current Skills Summary Card */}
           <div className="card">
             <div className="section-title-sm">
-              <h3 className="card-section-title">Current Mapped Skills</h3>
+              <h3 className="card-section-title">{t('dashboard.your_skills')}</h3>
               <Link to="/profile" className="link-sm">
                 Manage Skills
               </Link>
             </div>
 
             {skillsLoading ? (
-              <p className="loading-text">Loading skills...</p>
+              <p className="loading-text">{t('system.loading')}</p>
             ) : employeeSkills.length === 0 ? (
               <div className="empty-skills-notice">
                 <p>No skills recorded yet. Add your current statistical competencies.</p>
                 <Link to="/profile" className="btn btn-outline btn-sm">
-                  + Add Skills in Profile
+                  Add Skills
                 </Link>
               </div>
             ) : (
-              <div className="dashboard-skills-chips">
+              <div className="skill-chips-container">
                 {employeeSkills.map((skill) => (
-                  <span key={skill.id} className="skill-chip-view">
-                    <span className="chip-cat-tag">{skill.category || 'Skill'}</span>
-                    <span className="chip-label">{skill.name}</span>
+                  <span key={skill.id} className="skill-chip read-only">
+                    <span className="chip-category">{skill.category || 'Skill'}</span>
+                    <span className="chip-name">{skill.name}</span>
                   </span>
                 ))}
               </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
+import LanguageSelector from './LanguageSelector'
 import { 
   LayoutDashboard, 
   BrainCircuit, 
@@ -15,6 +17,7 @@ import {
 
 export default function Layout() {
   const { user, profile, signOut } = useAuth()
+  const { t } = useTranslation()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -41,16 +44,17 @@ export default function Layout() {
           </button>
           <Link to="/dashboard" className="mobile-brand">
             <span className="brand-emblem" aria-hidden="true">🏛️</span>
-            <span className="brand-title">Skill Intelligence</span>
+            <span className="brand-title">{t('nav.brand_title')}</span>
           </Link>
         </div>
-        {user && (
-          <div className="mobile-header-right">
-            <button className="icon-btn" onClick={handleLogout} aria-label="Logout">
+        <div className="mobile-header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <LanguageSelector className="mobile-only" />
+          {user && (
+            <button className="icon-btn" onClick={handleLogout} aria-label={t('nav.logout')}>
               <LogOut size={20} />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
       {/* Overlay for mobile drawer */}
@@ -65,8 +69,8 @@ export default function Layout() {
             <span className="brand-emblem" aria-hidden="true">🏛️</span>
             {isSidebarOpen && (
               <div className="brand-text">
-                <span className="brand-title">Skill Intelligence Platform</span>
-                <span className="brand-subtitle">MoSPI</span>
+                <span className="brand-title">{t('nav.brand_title')}</span>
+                <span className="brand-subtitle">{t('nav.brand_subtitle')}</span>
               </div>
             )}
           </Link>
@@ -80,34 +84,34 @@ export default function Layout() {
             <nav className="main-nav" aria-label="Main Navigation">
               <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <LayoutDashboard size={20} />
-                {isSidebarOpen && <span>Dashboard</span>}
+                {isSidebarOpen && <span>{t('nav.dashboard')}</span>}
               </NavLink>
               <NavLink to="/assessment" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <BrainCircuit size={20} />
-                {isSidebarOpen && <span>AI Assessment</span>}
+                {isSidebarOpen && <span>{t('nav.assessment')}</span>}
               </NavLink>
               <NavLink to="/mcq-generator" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <FileQuestion size={20} />
-                {isSidebarOpen && <span>MCQ Generator</span>}
+                {isSidebarOpen && <span>{t('nav.mcq_generator')}</span>}
               </NavLink>
               <NavLink to="/igot-courses" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <GraduationCap size={20} />
-                {isSidebarOpen && <span>iGOT Courses</span>}
+                {isSidebarOpen && <span>{t('nav.igot_courses')}</span>}
               </NavLink>
               <NavLink to="/research-engine" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <Microscope size={20} />
-                {isSidebarOpen && <span>Research Engine</span>}
+                {isSidebarOpen && <span>{t('nav.research_engine')}</span>}
               </NavLink>
               <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <UserCircle size={20} />
-                {isSidebarOpen && <span>My Profile</span>}
+                {isSidebarOpen && <span>{t('nav.profile')}</span>}
               </NavLink>
             </nav>
           ) : (
             <nav className="main-nav">
               <NavLink to="/login" className="nav-link">
                 <LogOut size={20} style={{ transform: 'rotate(180deg)' }} />
-                {isSidebarOpen && <span>Login</span>}
+                {isSidebarOpen && <span>{t('nav.login')}</span>}
               </NavLink>
             </nav>
           )}
@@ -127,12 +131,12 @@ export default function Layout() {
               )}
             </div>
             {isSidebarOpen && (
-              <button type="button" className="btn btn-logout-sidebar" onClick={handleLogout} title="Sign out">
-                <LogOut size={16} /> Logout
+              <button type="button" className="btn btn-logout-sidebar" onClick={handleLogout} title={t('nav.logout')}>
+                <LogOut size={16} /> {t('nav.logout')}
               </button>
             )}
             {!isSidebarOpen && (
-              <button type="button" className="icon-btn logout-icon-only" onClick={handleLogout} title="Sign out">
+              <button type="button" className="icon-btn logout-icon-only" onClick={handleLogout} title={t('nav.logout')}>
                 <LogOut size={20} />
               </button>
             )}
@@ -141,14 +145,17 @@ export default function Layout() {
       </aside>
 
       <div className="app-content-wrapper">
+        <header className="desktop-top-header" style={{ padding: '12px 24px', display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <LanguageSelector />
+        </header>
         <main className="app-main">
           <Outlet />
         </main>
 
         <footer className="app-footer">
           <div className="footer-inner">
-            <p>© 2026 Government of India · Ministry of Statistics and Programme Implementation (MoSPI)</p>
-            <p className="footer-sub">Official Statistical System Competency &amp; Skill Development Framework</p>
+            <p>{t('nav.footer_text')}</p>
+            <p className="footer-sub">{t('nav.footer_sub')}</p>
           </div>
         </footer>
       </div>

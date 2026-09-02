@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import LoadingScreen from '../components/LoadingScreen'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
@@ -10,6 +11,7 @@ export default function Assessment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user, loading: authLoading } = useAuth()
+  const { t } = useTranslation()
 
   // Start Screen Info
   const [infoLoading, setInfoLoading] = useState(true)
@@ -44,11 +46,11 @@ export default function Assessment() {
         setError(data.message)
       }
     } catch {
-      setError('Failed to fetch assessment info.')
+      setError(t('Failed to fetch assessment info.'))
     } finally {
       setInfoLoading(false)
     }
-  }, [])
+  }, [t])
 
   // 2. Finalize Assessment function
   const handleSubmitAssessment = useCallback(async (id) => {
@@ -73,10 +75,10 @@ export default function Assessment() {
       
       navigate(`/assessment/result/${id}`, { replace: true })
     } catch (err) {
-      setError(err.message || 'Error submitting final assessment')
+      setError(err.message || t('Error submitting final assessment'))
       setLoadingAction(false)
     }
-  }, [navigate])
+  }, [navigate, t])
 
   // 3. Fetch Next Question function
   const fetchNextQuestion = useCallback(async (id) => {
@@ -97,7 +99,7 @@ export default function Assessment() {
 
       // Validate question structure before updating state
       if (!data.question || !data.question.id || !data.question.questionText || !Array.isArray(data.question.options)) {
-        throw new Error('Received malformed question from server. Please try again.')
+        throw new Error(t('Received malformed question from server. Please try again.'))
       }
       
       setCurrentQuestion(data.question)
@@ -105,10 +107,10 @@ export default function Assessment() {
       setCurrentIndex((data.question.questionOrder || 1) - 1)
       setLoadingAction(false)
     } catch (err) {
-      setError(err.message || 'Error fetching question')
+      setError(err.message || t('Error fetching question'))
       setLoadingAction(false)
     }
-  }, [handleSubmitAssessment])
+  }, [handleSubmitAssessment, t])
 
   // 3. Start Assessment function
   const handleStart = useCallback(async (type = 'initial') => {
@@ -138,10 +140,10 @@ export default function Assessment() {
       // Fetch first question immediately
       await fetchNextQuestion(data.assessmentId)
     } catch (err) {
-      setError(err.message || 'Error starting assessment')
+      setError(err.message || t('Error starting assessment'))
       setLoadingAction(false)
     }
-  }, [fetchNextQuestion])
+  }, [fetchNextQuestion, t])
 
   // 4. Fetch info on mount
   useEffect(() => {
@@ -178,7 +180,7 @@ export default function Assessment() {
          await fetchNextQuestion(assessmentId)
       }
     } catch (err) {
-      setError(err.message || 'Error submitting answer')
+      setError(err.message || t('Error submitting answer'))
       setLoadingAction(false)
     }
   }
@@ -186,7 +188,7 @@ export default function Assessment() {
 
 
   if (authLoading || infoLoading) {
-    return <LoadingScreen message="Loading AI Competency Assessment..." />
+    return <LoadingScreen message={t('Loading AI Competency Assessment...')} />
   }
 
   // START SCREEN
@@ -194,9 +196,9 @@ export default function Assessment() {
     return (
       <div className="assessment-page">
         <div className="card start-screen-card" style={{ maxWidth: '800px', margin: '40px auto', padding: '40px' }}>
-          <h1 className="page-title" style={{ textAlign: 'center', marginBottom: '10px' }}>AI Competency Assessment</h1>
+          <h1 className="page-title" style={{ textAlign: 'center', marginBottom: '10px' }}>{t('AI Competency Assessment')}</h1>
           <p className="page-subtitle" style={{ textAlign: 'center', marginBottom: '40px' }}>
-            This adaptive assessment validates your active competencies against your official designation requirements.
+            {t('This adaptive assessment validates your active competencies against your official designation requirements.')}
           </p>
           
           {error && <div className="alert alert-error">{error}</div>}
@@ -204,16 +206,16 @@ export default function Assessment() {
           {assessmentInfo && (
             <div className="assessment-info-grid" style={{ display: 'grid', gap: '20px', marginBottom: '40px' }}>
                <div className="info-box" style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px' }}>
-                  <h3>Your Profile</h3>
-                  <p><strong>Designation:</strong> {assessmentInfo.designationName}</p>
-                  <p><strong>Current Skills:</strong> {assessmentInfo.currentSkills.map(s => s.name).join(', ') || 'None'}</p>
+                  <h3>{t('Your Profile')}</h3>
+                  <p><strong>{t('Designation:')}</strong> {assessmentInfo.designationName}</p>
+                  <p><strong>{t('Current Skills:')}</strong> {assessmentInfo.currentSkills.map(s => s.name).join(', ') || t('None')}</p>
                </div>
                
                <div className="info-box" style={{ background: '#f0fdf4', padding: '20px', borderRadius: '8px' }}>
-                  <h3>Assessment Details</h3>
-                  <p><strong>Total Questions:</strong> {assessmentInfo.totalQuestions}</p>
-                  <p><strong>Estimated Time:</strong> {assessmentInfo.estimatedTime} minutes</p>
-                  <p><strong>Adaptive Difficulty:</strong> Yes, adjusts based on your performance.</p>
+                  <h3>{t('Assessment Details')}</h3>
+                  <p><strong>{t('Total Questions:')}</strong> {assessmentInfo.totalQuestions}</p>
+                  <p><strong>{t('Estimated Time:')}</strong> {assessmentInfo.estimatedTime} {t('minutes')}</p>
+                  <p><strong>{t('Adaptive Difficulty:')}</strong> {t('Yes, adjusts based on your performance.')}</p>
                </div>
             </div>
           )}
@@ -225,10 +227,10 @@ export default function Assessment() {
                onClick={() => handleStart('initial')} 
                disabled={loadingAction || !assessmentInfo || assessmentInfo.currentSkills.length === 0}
             >
-               {loadingAction ? 'Initializing Assessment...' : 'Start Assessment'}
+               {loadingAction ? t('Initializing Assessment...') : t('Start Assessment')}
             </button>
             {(!assessmentInfo || assessmentInfo.currentSkills.length === 0) && (
-               <p style={{ marginTop: '15px', color: '#dc2626' }}>You must select your current skills in your Profile first.</p>
+               <p style={{ marginTop: '15px', color: '#dc2626' }}>{t('You must select your current skills in your Profile first.')}</p>
             )}
           </div>
         </div>
@@ -238,7 +240,7 @@ export default function Assessment() {
 
   // ACTIVE ASSESSMENT SCREEN
   if (loadingAction && !currentQuestion) {
-     return <LoadingScreen message="Generating next adaptive question..." />
+     return <LoadingScreen message={t('Generating next adaptive question...')} />
   }
 
   if (!currentQuestion) return null;
@@ -249,25 +251,25 @@ export default function Assessment() {
     <div className="assessment-page">
       <div className="assessment-header-box">
         <div>
-          <h1 className="page-title">AI Competency Assessment</h1>
-          <p className="page-subtitle">Answer the following question to advance.</p>
+          <h1 className="page-title">{t('AI Competency Assessment')}</h1>
+          <p className="page-subtitle">{t('Answer the following question to advance.')}</p>
         </div>
         <div className="quiz-counter-pill">
-          Question {currentIndex + 1} of {totalQuestions}
+          {t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}
         </div>
       </div>
 
       {error && (
         <div className="alert alert-error" role="alert">
-          <strong>Notice:</strong> {error}
+          <strong>{t('Notice:')}</strong> {error}
         </div>
       )}
 
       <div className="card quiz-card">
         <div className="progress-container">
           <div className="progress-label-row">
-            <span className="progress-step-text">Question {currentIndex + 1} of {totalQuestions}</span>
-            <span className="progress-pct-text">{progressPct}% Complete</span>
+            <span className="progress-step-text">{t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}</span>
+            <span className="progress-pct-text">{progressPct}{t('% Complete')}</span>
           </div>
           <div className="progress-bar-track">
             <div className="progress-bar-fill" style={{ width: `${progressPct}%` }} />
@@ -276,7 +278,7 @@ export default function Assessment() {
 
         <div className="quiz-meta-row">
           <span className="quiz-skill-tag">
-            Skill: <strong>{currentQuestion.skillName}</strong>
+            {t('Skill:')} <strong>{currentQuestion.skillName}</strong>
           </span>
           <span className={`quiz-diff-tag diff-${currentQuestion.difficulty || 'medium'}`}>
             {(currentQuestion.difficulty || 'medium').toUpperCase()}
@@ -311,7 +313,7 @@ export default function Assessment() {
             onClick={handleNextQuestion}
             disabled={loadingAction || !selectedOption}
           >
-            {loadingAction ? 'Processing...' : (currentIndex + 1 >= totalQuestions ? 'Submit Assessment' : 'Next Question →')}
+            {loadingAction ? t('Processing...') : (currentIndex + 1 >= totalQuestions ? t('Submit Assessment') : t('Next Question →'))}
           </button>
         </div>
       </div>

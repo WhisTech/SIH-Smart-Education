@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import LoadingScreen from '../components/LoadingScreen'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function AssessmentResult() {
   const { assessmentId } = useParams()
+  const { t, i18n } = useTranslation()
 
   const [result, setResult] = useState(null)
   const [skillGaps, setSkillGaps] = useState([])
@@ -87,7 +89,7 @@ export default function AssessmentResult() {
     return (
       <div className="card comparison-card" style={{ padding: '24px', marginBottom: '24px', borderLeft: isImprovement ? '6px solid #16a34a' : '6px solid #dc2626', background: '#ffffff', borderRadius: '10px' }}>
          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h2 className="card-section-title" style={{ margin: 0 }}>📈 Historical Performance Progression</h2>
+            <h2 className="card-section-title" style={{ margin: 0 }}>📈 {t('result.historical_progression')}</h2>
             <span style={{ 
                background: isImprovement ? '#dcfce7' : '#fee2e2', 
                color: isImprovement ? '#166534' : '#991b1b', 
@@ -96,23 +98,23 @@ export default function AssessmentResult() {
                borderRadius: '20px',
                fontSize: '0.9rem' 
             }}>
-               {diff >= 0 ? `+${Math.round(diff)}% Improvement` : `${Math.round(diff)}% Decline`}
+               {diff >= 0 ? `+${Math.round(diff)}% ${t('result.improvement')}` : `${Math.round(diff)}% ${t('result.decline')}`}
             </span>
          </div>
          
          <p style={{ color: '#475569', fontSize: '0.95rem' }}>
-            Previous Attempt: <strong>{Math.round(comparison.previous.overall)}%</strong> &rarr; Current Attempt: <strong>{Math.round(comparison.current.overall)}%</strong>
+            {t('result.previous_attempt')}: <strong>{Math.round(comparison.previous.overall)}%</strong> &rarr; {t('result.current_attempt')}: <strong>{Math.round(comparison.current.overall)}%</strong>
          </p>
          
          <div style={{ overflowX: 'auto', marginTop: '15px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                     <th style={{ padding: '10px 14px' }}>Competency / Skill</th>
-                     <th style={{ padding: '10px 14px' }}>Previous Score</th>
-                     <th style={{ padding: '10px 14px' }}>Current Score</th>
-                     <th style={{ padding: '10px 14px' }}>Change</th>
-                     <th style={{ padding: '10px 14px' }}>Progression Status</th>
+                     <th style={{ padding: '10px 14px' }}>{t('dashboard.skill')}</th>
+                     <th style={{ padding: '10px 14px' }}>{t('result.previous_score')}</th>
+                     <th style={{ padding: '10px 14px' }}>{t('result.current_score')}</th>
+                     <th style={{ padding: '10px 14px' }}>{t('result.change')}</th>
+                     <th style={{ padding: '10px 14px' }}>{t('result.status')}</th>
                   </tr>
                </thead>
                <tbody>
@@ -125,16 +127,16 @@ export default function AssessmentResult() {
                      const skillNameObj = skillScores.find(s => s.skillId === curr.skill_id);
                      const name = skillNameObj ? skillNameObj.skillName : 'Skill';
 
-                     let statusText = 'Unchanged';
+                     let statusText = t('result.unchanged');
                      let statusBg = '#f1f5f9';
                      let statusColor = '#475569';
 
                      if (change > 0) {
-                        statusText = '↑ Improved';
+                        statusText = `↑ ${t('result.improved')}`;
                         statusBg = '#dcfce7';
                         statusColor = '#166534';
                      } else if (change < 0) {
-                        statusText = '↓ Declined';
+                        statusText = `↓ ${t('result.declined')}`;
                         statusBg = '#fee2e2';
                         statusColor = '#991b1b';
                      }
@@ -165,24 +167,24 @@ export default function AssessmentResult() {
   const renderSkillGaps = () => {
      return (
       <div className="card skill-gap-analysis-card" style={{ marginBottom: '20px' }}>
-        <h2 className="card-section-title">📊 Designation Skill-Gap Analysis</h2>
-        <p className="section-desc">Comparison between your Assessed Score and Required Standard.</p>
+        <h2 className="card-section-title">📊 {t('result.skill_gap_analysis')}</h2>
+        <p className="section-desc">{t('result.comparison_desc')}</p>
 
         {skillGaps.length === 0 ? (
-          <p>No skill gaps identified.</p>
+          <p>{t('result.no_gaps')}</p>
         ) : (
           <div className="gaps-list">
              {skillGaps.map(gap => {
                 const gapVal = Math.max(0, gap.requiredScore - gap.assessedScore);
                 const isMet = gap.assessedScore >= gap.requiredScore;
                 
-                let status = 'Strong';
+                let status = t('result.strong');
                 let color = '#16a34a';
                 if (!isMet) {
-                   if (gapVal <= 10) { status = 'Needs Improvement'; color = '#ca8a04'; }
-                   else { status = 'High Priority'; color = '#dc2626'; }
+                   if (gapVal <= 10) { status = t('result.needs_improvement'); color = '#ca8a04'; }
+                   else { status = t('result.high_priority'); color = '#dc2626'; }
                 } else if (gap.assessedScore === gap.requiredScore) {
-                   status = 'Meets Requirement';
+                   status = t('result.meets_req');
                 }
 
                 return (
@@ -192,9 +194,9 @@ export default function AssessmentResult() {
                          <span style={{ color, fontWeight: 'bold' }}>{status}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', color: '#64748b', marginBottom: '5px' }}>
-                         <span>Current: {gap.assessedScore}%</span>
-                         <span>Required: {gap.requiredScore}%</span>
-                         <span>Gap: {gapVal}%</span>
+                         <span>{t('result.current')}: {gap.assessedScore}%</span>
+                         <span>{t('result.required')}: {gap.requiredScore}%</span>
+                         <span>{t('result.gap')}: {gapVal}%</span>
                       </div>
                       
                       {/* Visual Bar */}
@@ -220,10 +222,10 @@ export default function AssessmentResult() {
 
       return (
          <div className="card recommended-courses-card">
-            <h2 className="card-section-title">Targeted iGOT Course Recommendations</h2>
-            <p>These courses are prioritized strictly based on your identified skill gaps.</p>
+            <h2 className="card-section-title">{t('result.recommended_courses')}</h2>
+            <p>{t('result.course_prioritization')}</p>
             {filteredCourses.length === 0 ? (
-               <p style={{ color: '#16a34a', fontWeight: 'bold', marginTop: '10px' }}>✓ You meet all required standards. No mandatory courses.</p>
+               <p style={{ color: '#16a34a', fontWeight: 'bold', marginTop: '10px' }}>✓ {t('result.all_met')}</p>
             ) : (
                <ul style={{ listStyle: 'none', padding: 0 }}>
                   {filteredCourses.map(course => {
@@ -231,9 +233,9 @@ export default function AssessmentResult() {
                      return (
                         <li key={course.courseId || course.id} style={{ background: '#f0fdf4', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '1px solid #bbf7d0' }}>
                            <h4 style={{ margin: '0 0 5px 0' }}>{course.title}</h4>
-                           <p style={{ margin: 0, fontSize: '0.9em', color: '#166534' }}>Provider: {course.provider} | Duration: {course.duration || 'Self-paced'}</p>
+                           <p style={{ margin: 0, fontSize: '0.9em', color: '#166534' }}>{t('result.provider')}: {course.provider} | {t('result.duration')}: {course.duration || 'Self-paced'}</p>
                            <p style={{ margin: '5px 0 0 0', fontSize: '0.85em' }}>
-                              Recommended to close <strong>{skill?.gapPercentage}%</strong> gap in <strong>{skill?.skillName}</strong>.
+                              {t('result.recommended_close')} <strong>{skill?.gapPercentage}%</strong> {t('result.gap')} in <strong>{skill?.skillName}</strong>.
                            </p>
                         </li>
                      )
@@ -256,7 +258,7 @@ export default function AssessmentResult() {
                      textDecoration: 'none'
                   }}
                >
-                  <span>🎓 Explore AI-Recommended Courses for Skill Gaps</span> &rarr;
+                  <span>🎓 {t('result.explore_courses')}</span> &rarr;
                </Link>
             </div>
          </div>
@@ -267,15 +269,15 @@ export default function AssessmentResult() {
     <div className="result-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Assessment Results & Competency Report</h1>
-          <p className="page-subtitle">Overall Score: <strong>{Math.round(overallScore)}%</strong> ({correctAnswers}/{totalQuestions} correct)</p>
+          <h1 className="page-title">{t('result.title')}</h1>
+          <p className="page-subtitle">{t('result.overall_score')}: <strong>{Math.round(overallScore)}%</strong> ({correctAnswers}/{totalQuestions} {t('result.correct')})</p>
         </div>
         <div className="header-actions">
            <Link to="/reassessment" className="btn btn-primary" style={{ marginRight: '10px' }}>
-              🎯 Start Reassessment Loop
+              🎯 {t('reassessment.start_reassessment')}
            </Link>
            <Link to="/assessment" className="btn btn-outline" style={{ marginRight: '10px' }}>
-              Take Another Assessment
+              {t('result.take_another')}
            </Link>
         </div>
       </div>

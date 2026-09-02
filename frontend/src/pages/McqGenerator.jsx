@@ -1,8 +1,11 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function McqGenerator() {
+  const { t } = useTranslation()
+
   // 1. File & Configuration State
   const [selectedFile, setSelectedFile] = useState(null)
   const [questionCount, setQuestionCount] = useState(5)
@@ -28,18 +31,18 @@ export default function McqGenerator() {
     if (!file) return
 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please select a valid PDF file. Other file formats are not supported.')
+      setError(t('Please select a valid PDF file. Other file formats are not supported.'))
       return
     }
 
     const maxSizeBytes = 15 * 1024 * 1024
     if (file.size > maxSizeBytes) {
-      setError(`File size exceeds 15MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a smaller document.`)
+      setError(t(`File size exceeds 15MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a smaller document.`))
       return
     }
 
     if (file.size === 0) {
-      setError('The selected file is empty (0 bytes). Please choose a valid PDF document.')
+      setError(t('The selected file is empty (0 bytes). Please choose a valid PDF document.'))
       return
     }
 
@@ -75,7 +78,7 @@ export default function McqGenerator() {
     if (isGenerating) return
 
     if (!selectedFile) {
-      setError('Please upload a PDF document first before generating MCQs.')
+      setError(t('Please upload a PDF document first before generating MCQs.'))
       return
     }
 
@@ -100,13 +103,13 @@ export default function McqGenerator() {
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to generate MCQs from the document.')
+        throw new Error(data.message || t('Failed to generate MCQs from the document.'))
       }
 
       setQuizData(data)
     } catch (err) {
       console.error('Error generating MCQs:', err)
-      setError(err.message || 'Failed to generate MCQs. Please verify the PDF format and try again.')
+      setError(err.message || t('Failed to generate MCQs. Please verify the PDF format and try again.'))
     } finally {
       setIsGenerating(false)
     }
@@ -147,7 +150,7 @@ export default function McqGenerator() {
   const handleCopyReview = () => {
     if (!quizData?.mcqs) return
     const reviewData = quizData.mcqs.map((q, idx) => {
-      const userAns = userAnswers[idx] || 'Not Answered'
+      const userAns = userAnswers[idx] || t('Not Answered')
       const isCorrect = userAns === q.correctAnswer
       return {
         questionNumber: idx + 1,
@@ -203,16 +206,16 @@ export default function McqGenerator() {
       <div className="page-header-row">
         <div>
           <div className="page-tag">
-            <span className="sparkle-icon">✨</span> Gemini AI Powered
+            <span className="sparkle-icon">✨</span> {t('Gemini AI Powered')}
           </div>
-          <h1 className="page-title">AI MCQ Generator &amp; Quiz</h1>
+          <h1 className="page-title">{t('AI MCQ Generator & Quiz')}</h1>
           <p className="page-subtitle">
-            Upload any statistical report, manual, or policy document in PDF to generate verified questions, test your comprehension in Quiz Mode, and inspect detailed grounding explanations.
+            {t('Upload any statistical report, manual, or policy document in PDF to generate verified questions, test your comprehension in Quiz Mode, and inspect detailed grounding explanations.')}
           </p>
         </div>
         {quizData && (
           <button type="button" className="btn btn-outline" onClick={handleResetAll}>
-            Upload New Document
+            {t('Upload New Document')}
           </button>
         )}
       </div>
@@ -222,7 +225,7 @@ export default function McqGenerator() {
         <div className="alert-box alert-error" role="alert">
           <span className="alert-icon">⚠️</span>
           <div className="alert-content">
-            <strong>Generation Notice:</strong> {error}
+            <strong>{t('Generation Notice:')}</strong> {error}
           </div>
           <button type="button" className="alert-close" onClick={() => setError('')} aria-label="Dismiss">
             ✕
@@ -237,7 +240,7 @@ export default function McqGenerator() {
             
             {/* Left Column: PDF File Dropzone */}
             <div className="generator-col">
-              <label className="section-label">1. Upload Source PDF</label>
+              <label className="section-label">{t('1. Upload Source PDF')}</label>
               
               {!selectedFile ? (
                 <div
@@ -258,8 +261,8 @@ export default function McqGenerator() {
                     style={{ display: 'none' }}
                   />
                   <div className="dropzone-icon">📄</div>
-                  <div className="dropzone-title">Click to upload or drag &amp; drop PDF</div>
-                  <div className="dropzone-help">Supports searchable PDF files up to 15MB</div>
+                  <div className="dropzone-title">{t('Click to upload or drag & drop PDF')}</div>
+                  <div className="dropzone-help">{t('Supports searchable PDF files up to 15MB')}</div>
                 </div>
               ) : (
                 <div className="file-preview-card">
@@ -267,7 +270,7 @@ export default function McqGenerator() {
                     <span className="file-icon">📑</span>
                     <div className="file-details">
                       <span className="file-name" title={selectedFile.name}>{selectedFile.name}</span>
-                      <span className="file-meta">{formatFileSize(selectedFile.size)} · Ready for analysis</span>
+                      <span className="file-meta">{formatFileSize(selectedFile.size)} · {t('Ready for analysis')}</span>
                     </div>
                   </div>
                   <button
@@ -275,9 +278,9 @@ export default function McqGenerator() {
                     className="btn btn-sm btn-ghost file-remove-btn"
                     onClick={handleRemoveFile}
                     disabled={isGenerating}
-                    title="Remove file"
+                    title={t('Remove file')}
                   >
-                    ✕ Remove
+                    ✕ {t('Remove')}
                   </button>
                 </div>
               )}
@@ -285,10 +288,10 @@ export default function McqGenerator() {
 
             {/* Right Column: Settings & Action */}
             <div className="generator-col">
-              <label className="section-label">2. Configure Generation</label>
+              <label className="section-label">{t('2. Configure Generation')}</label>
               
               <div className="config-group">
-                <span className="config-label">Number of Questions</span>
+                <span className="config-label">{t('Number of Questions')}</span>
                 <div className="pill-group">
                   {[5, 10, 15, 20].map((num) => (
                     <button
@@ -298,19 +301,19 @@ export default function McqGenerator() {
                       onClick={() => setQuestionCount(num)}
                       disabled={isGenerating}
                     >
-                      {num} MCQs
+                      {num} {t('MCQs')}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="config-group">
-                <span className="config-label">Difficulty Level</span>
+                <span className="config-label">{t('Difficulty Level')}</span>
                 <div className="pill-group">
                   {[
-                    { key: 'EASY', label: 'Easy' },
-                    { key: 'MEDIUM', label: 'Medium' },
-                    { key: 'HARD', label: 'Hard' }
+                    { key: 'EASY', label: t('Easy') },
+                    { key: 'MEDIUM', label: t('Medium') },
+                    { key: 'HARD', label: t('Hard') }
                   ].map((item) => (
                     <button
                       key={item.key}
@@ -335,11 +338,11 @@ export default function McqGenerator() {
                   {isGenerating ? (
                     <>
                       <span className="spinner-sm" aria-hidden="true"></span>
-                      Synthesizing Questions with Gemini AI...
+                      {t('Synthesizing Questions with Gemini AI...')}
                     </>
                   ) : (
                     <>
-                      <span>✨</span> Generate MCQs
+                      <span>✨</span> {t('Generate MCQs')}
                     </>
                   )}
                 </button>
@@ -354,16 +357,16 @@ export default function McqGenerator() {
       {isGenerating && (
         <div className="card loading-card">
           <div className="loading-spinner-large"></div>
-          <h3 className="loading-title">Generating Grounded Questions...</h3>
+          <h3 className="loading-title">{t('Generating Grounded Questions...')}</h3>
           <p className="loading-desc">
-            Gemini is processing your PDF document, extracting page text, and crafting verified questions with 4 distinct options and source citations.
+            {t('Gemini is processing your PDF document, extracting page text, and crafting verified questions with 4 distinct options and source citations.')}
           </p>
           <div className="loading-steps">
-            <span className="step-badge">1. Parsing Document</span>
+            <span className="step-badge">{t('1. Parsing Document')}</span>
             <span className="step-arrow">→</span>
-            <span className="step-badge active">2. Gemini Processing</span>
+            <span className="step-badge active">{t('2. Gemini Processing')}</span>
             <span className="step-arrow">→</span>
-            <span className="step-badge">3. Quality Validation</span>
+            <span className="step-badge">{t('3. Quality Validation')}</span>
           </div>
         </div>
       )}
@@ -372,24 +375,24 @@ export default function McqGenerator() {
       {!isGenerating && !quizData && (
         <div className="card empty-guide-card">
           <div className="guide-header">
-            <h3>How AI MCQ Quiz Generator Works</h3>
-            <p>Interactive self-assessment grounded strictly in your official documents</p>
+            <h3>{t('How AI MCQ Quiz Generator Works')}</h3>
+            <p>{t('Interactive self-assessment grounded strictly in your official documents')}</p>
           </div>
           <div className="guide-grid">
             <div className="guide-item">
               <span className="guide-icon">🎯</span>
-              <h4>100% Document Grounded</h4>
-              <p>Questions are synthesized strictly from the uploaded PDF text without external hallucination.</p>
+              <h4>{t('100% Document Grounded')}</h4>
+              <p>{t('Questions are synthesized strictly from the uploaded PDF text without external hallucination.')}</p>
             </div>
             <div className="guide-item">
               <span className="guide-icon">📝</span>
-              <h4>Interactive Quiz Mode</h4>
-              <p>Answer questions at your own pace without spoilers. Answers and explanations are revealed after submission.</p>
+              <h4>{t('Interactive Quiz Mode')}</h4>
+              <p>{t('Answer questions at your own pace without spoilers. Answers and explanations are revealed after submission.')}</p>
             </div>
             <div className="guide-item">
               <span className="guide-icon">📖</span>
-              <h4>Source Page Citations</h4>
-              <p>Review detailed explanations and verified PDF page numbers for every single question.</p>
+              <h4>{t('Source Page Citations')}</h4>
+              <p>{t('Review detailed explanations and verified PDF page numbers for every single question.')}</p>
             </div>
           </div>
         </div>
@@ -404,12 +407,12 @@ export default function McqGenerator() {
           {/* Quiz Status Header */}
           <div className="card quiz-control-header">
             <div className="quiz-control-left">
-              <span className="quiz-mode-pill">📝 Active Quiz Mode</span>
+              <span className="quiz-mode-pill">📝 {t('Active Quiz Mode')}</span>
               <h2 className="quiz-doc-title">
                 {quizData.filename}
               </h2>
               <p className="quiz-doc-meta">
-                {totalQuestionsCount} Questions · Difficulty: <strong>{quizData.difficulty}</strong> · {answeredCount} of {totalQuestionsCount} Answered
+                {totalQuestionsCount} {t('Questions')} · {t('Difficulty:')} <strong>{quizData.difficulty}</strong> · {answeredCount} {t('of')} {totalQuestionsCount} {t('Answered')}
               </p>
             </div>
 
@@ -418,9 +421,9 @@ export default function McqGenerator() {
                 type="button"
                 className="btn btn-success btn-submit-quiz"
                 onClick={handleSubmitQuiz}
-                title="Submit your answers to calculate score"
+                title={t('Submit your answers to calculate score')}
               >
-                ✓ Submit Quiz ({answeredCount}/{totalQuestionsCount})
+                ✓ {t('Submit Quiz')} ({answeredCount}/{totalQuestionsCount})
               </button>
             </div>
           </div>
@@ -453,10 +456,10 @@ export default function McqGenerator() {
                 <div className="mcq-body">
                   <div className="mcq-header">
                     <div className="mcq-number-box">
-                      <span className="mcq-num">Question {activeQuestionIndex + 1} of {totalQuestionsCount}</span>
+                      <span className="mcq-num">{t('Question')} {activeQuestionIndex + 1} {t('of')} {totalQuestionsCount}</span>
                       <span className={`diff-tag diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
                     </div>
-                    <span className="quiz-hint-badge">Select one option</span>
+                    <span className="quiz-hint-badge">{t('Select one option')}</span>
                   </div>
 
                   <h3 className="mcq-question-text">{q.question}</h3>
@@ -488,7 +491,7 @@ export default function McqGenerator() {
                       disabled={activeQuestionIndex === 0}
                       onClick={() => setActiveQuestionIndex((prev) => prev - 1)}
                     >
-                      ← Previous
+                      ← {t('Previous')}
                     </button>
                     
                     <span className="footer-counter">
@@ -501,7 +504,7 @@ export default function McqGenerator() {
                         className="btn btn-primary btn-sm"
                         onClick={() => setActiveQuestionIndex((prev) => prev + 1)}
                       >
-                        Next Question →
+                        {t('Next Question')} →
                       </button>
                     ) : (
                       <button
@@ -509,7 +512,7 @@ export default function McqGenerator() {
                         className="btn btn-success btn-sm"
                         onClick={handleSubmitQuiz}
                       >
-                        Submit Quiz →
+                        {t('Submit Quiz')} →
                       </button>
                     )}
                   </div>
@@ -530,9 +533,9 @@ export default function McqGenerator() {
           {/* FINAL SCORE CARD */}
           <div className="card mcq-score-card">
             <div className="score-card-top">
-              <span className="score-badge-official">AI MCQ RESULT</span>
-              <h2 className="score-title">Assessment Completed</h2>
-              <p className="score-doc-ref">Document: <strong>{quizData.filename}</strong></p>
+              <span className="score-badge-official">{t('AI MCQ RESULT')}</span>
+              <h2 className="score-title">{t('Assessment Completed')}</h2>
+              <p className="score-doc-ref">{t('Document:')} <strong>{quizData.filename}</strong></p>
             </div>
 
             <div className="score-grid-main">
@@ -540,23 +543,23 @@ export default function McqGenerator() {
                 <span className="score-main-number">{scoreStats.correct} / {scoreStats.total}</span>
                 <span className="score-pct-number">{scoreStats.percentage}%</span>
                 <span className="score-status-text">
-                  {scoreStats.percentage >= 80 ? '🌟 Excellent Understanding' : scoreStats.percentage >= 50 ? '👍 Good Effort' : '📚 Review Recommended'}
+                  {scoreStats.percentage >= 80 ? t('🌟 Excellent Understanding') : scoreStats.percentage >= 50 ? t('👍 Good Effort') : t('📚 Review Recommended')}
                 </span>
               </div>
 
               <div className="score-breakdown-box">
                 <div className="breakdown-stat stat-correct">
                   <span className="stat-num">{scoreStats.correct}</span>
-                  <span className="stat-label">✓ Correct</span>
+                  <span className="stat-label">✓ {t('Correct')}</span>
                 </div>
                 <div className="breakdown-stat stat-incorrect">
                   <span className="stat-num">{scoreStats.incorrect}</span>
-                  <span className="stat-label">✗ Incorrect</span>
+                  <span className="stat-label">✗ {t('Incorrect')}</span>
                 </div>
                 {scoreStats.unanswered > 0 && (
                   <div className="breakdown-stat stat-unanswered">
                     <span className="stat-num">{scoreStats.unanswered}</span>
-                    <span className="stat-label">— Unanswered</span>
+                    <span className="stat-label">— {t('Unanswered')}</span>
                   </div>
                 )}
               </div>
@@ -564,13 +567,13 @@ export default function McqGenerator() {
 
             <div className="score-card-actions">
               <button type="button" className="btn btn-primary" onClick={handleRetakeQuiz}>
-                🔄 Retake Quiz
+                🔄 {t('Retake Quiz')}
               </button>
               <button type="button" className="btn btn-outline" onClick={handleCopyReview}>
-                {copied ? '✓ Copied Review' : '📋 Copy Review JSON'}
+                {copied ? t('✓ Copied Review') : t('📋 Copy Review JSON')}
               </button>
               <button type="button" className="btn btn-ghost" onClick={handleResetAll}>
-                Upload Another Document
+                {t('Upload Another Document')}
               </button>
             </div>
           </div>
@@ -578,8 +581,8 @@ export default function McqGenerator() {
           {/* Question Review Header & View Switcher */}
           <div className="card results-meta-card">
             <div className="meta-left">
-              <h3 className="meta-title">Detailed Question Review &amp; Explanations</h3>
-              <p className="meta-sub">Inspect correct answers, explanations, and verified page numbers.</p>
+              <h3 className="meta-title">{t('Detailed Question Review & Explanations')}</h3>
+              <p className="meta-sub">{t('Inspect correct answers, explanations, and verified page numbers.')}</p>
             </div>
             <div className="meta-right">
               <div className="view-toggle">
@@ -588,14 +591,14 @@ export default function McqGenerator() {
                   className={`btn btn-sm ${viewMode === 'single' ? 'btn-primary' : 'btn-outline'}`}
                   onClick={() => setViewMode('single')}
                 >
-                  Card View
+                  {t('Card View')}
                 </button>
                 <button
                   type="button"
                   className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-outline'}`}
                   onClick={() => setViewMode('all')}
                 >
-                  All Questions
+                  {t('All Questions')}
                 </button>
               </div>
             </div>
@@ -631,14 +634,14 @@ export default function McqGenerator() {
                   <div className="mcq-body">
                     <div className="mcq-header">
                       <div className="mcq-number-box">
-                        <span className="mcq-num">Question {activeQuestionIndex + 1} of {totalQuestionsCount}</span>
+                        <span className="mcq-num">{t('Question')} {activeQuestionIndex + 1} {t('of')} {totalQuestionsCount}</span>
                         <span className={`diff-tag diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
                         <span className={`status-pill ${isCorrect ? 'status-correct' : 'status-incorrect'}`}>
-                          {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          {isCorrect ? t('✓ Correct') : t('✗ Incorrect')}
                         </span>
                       </div>
                       <div className="mcq-source-badge">
-                        <span>📄 Source: Page {q.sourcePage}</span>
+                        <span>📄 {t('Source: Page')} {q.sourcePage}</span>
                       </div>
                     </div>
 
@@ -647,10 +650,10 @@ export default function McqGenerator() {
                     {/* Answer Comparison Summary */}
                     <div className="answer-comparison-bar">
                       <span className="ans-comp-item">
-                        Your Answer: <strong>{userAns ? `${userAns}. ${q.options[userAns]}` : 'Not Answered'}</strong>
+                        {t('Your Answer:')} <strong>{userAns ? `${userAns}. ${q.options[userAns]}` : t('Not Answered')}</strong>
                       </span>
                       <span className="ans-comp-item correct-highlight">
-                        Correct Answer: <strong>{q.correctAnswer}. {q.options[q.correctAnswer]}</strong>
+                        {t('Correct Answer:')} <strong>{q.correctAnswer}. {q.options[q.correctAnswer]}</strong>
                       </span>
                     </div>
 
@@ -670,8 +673,8 @@ export default function McqGenerator() {
                               {key}
                             </span>
                             <span className="option-text">{q.options[key]}</span>
-                            {isCorrectOpt && <span className="correct-pill">Correct Answer</span>}
-                            {isUserChoice && !isCorrectOpt && <span className="wrong-pill">Your Answer</span>}
+                            {isCorrectOpt && <span className="correct-pill">{t('Correct Answer')}</span>}
+                            {isUserChoice && !isCorrectOpt && <span className="wrong-pill">{t('Your Answer')}</span>}
                           </div>
                         )
                       })}
@@ -681,7 +684,7 @@ export default function McqGenerator() {
                     <div className="mcq-explanation-card">
                       <div className="exp-header">
                         <span className="exp-icon">💡</span>
-                        <strong>Explanation &amp; Grounding:</strong>
+                        <strong>{t('Explanation & Grounding:')}</strong>
                       </div>
                       <p className="exp-text">{q.explanation}</p>
                     </div>
@@ -694,7 +697,7 @@ export default function McqGenerator() {
                         disabled={activeQuestionIndex === 0}
                         onClick={() => setActiveQuestionIndex((prev) => prev - 1)}
                       >
-                        ← Previous
+                        ← {t('Previous')}
                       </button>
                       <span className="footer-counter">
                         {activeQuestionIndex + 1} / {totalQuestionsCount}
@@ -705,7 +708,7 @@ export default function McqGenerator() {
                         disabled={activeQuestionIndex === totalQuestionsCount - 1}
                         onClick={() => setActiveQuestionIndex((prev) => prev + 1)}
                       >
-                        Next →
+                        {t('Next')} →
                       </button>
                     </div>
                   </div>
@@ -725,14 +728,14 @@ export default function McqGenerator() {
                   <div key={idx} className="card mcq-list-card">
                     <div className="mcq-header">
                       <div className="mcq-number-box">
-                        <span className="mcq-num">Question {idx + 1}</span>
+                        <span className="mcq-num">{t('Question')} {idx + 1}</span>
                         <span className={`diff-tag diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
                         <span className={`status-pill ${isCorrect ? 'status-correct' : 'status-incorrect'}`}>
-                          {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          {isCorrect ? t('✓ Correct') : t('✗ Incorrect')}
                         </span>
                       </div>
                       <div className="mcq-source-badge">
-                        <span>📄 Source: Page {q.sourcePage}</span>
+                        <span>📄 {t('Source: Page')} {q.sourcePage}</span>
                       </div>
                     </div>
 
@@ -740,10 +743,10 @@ export default function McqGenerator() {
 
                     <div className="answer-comparison-bar">
                       <span className="ans-comp-item">
-                        Your Answer: <strong>{userAns ? `${userAns}. ${q.options[userAns]}` : 'Not Answered'}</strong>
+                        {t('Your Answer:')} <strong>{userAns ? `${userAns}. ${q.options[userAns]}` : t('Not Answered')}</strong>
                       </span>
                       <span className="ans-comp-item correct-highlight">
-                        Correct Answer: <strong>{q.correctAnswer}. {q.options[q.correctAnswer]}</strong>
+                        {t('Correct Answer:')} <strong>{q.correctAnswer}. {q.options[q.correctAnswer]}</strong>
                       </span>
                     </div>
 
@@ -762,8 +765,8 @@ export default function McqGenerator() {
                               {key}
                             </span>
                             <span className="option-text">{q.options[key]}</span>
-                            {isCorrectOpt && <span className="correct-pill">Correct Answer</span>}
-                            {isUserChoice && !isCorrectOpt && <span className="wrong-pill">Your Answer</span>}
+                            {isCorrectOpt && <span className="correct-pill">{t('Correct Answer')}</span>}
+                            {isUserChoice && !isCorrectOpt && <span className="wrong-pill">{t('Your Answer')}</span>}
                           </div>
                         )
                       })}
@@ -772,7 +775,7 @@ export default function McqGenerator() {
                     <div className="mcq-explanation-card">
                       <div className="exp-header">
                         <span className="exp-icon">💡</span>
-                        <strong>Explanation:</strong>
+                        <strong>{t('Explanation:')}</strong>
                       </div>
                       <p className="exp-text">{q.explanation}</p>
                     </div>

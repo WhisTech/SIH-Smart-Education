@@ -1,0 +1,111 @@
+const fs = require('fs');
+const en = JSON.parse(fs.readFileSync('src/i18n/locales/en/translation.json'));
+const keys = `auth.auth_footer
+auth.brand_badge
+auth.brand_subtitle
+auth.brand_title
+auth.department_req
+auth.designation_req
+auth.email_invalid
+auth.email_label
+auth.email_placeholder
+auth.email_req
+auth.feature_1_desc
+auth.feature_1_title
+auth.feature_2_desc
+auth.feature_2_title
+auth.feature_3_desc
+auth.feature_3_title
+auth.hide_password
+auth.login_desc
+auth.login_tab
+auth.name_req
+auth.password_label
+auth.password_min
+auth.password_placeholder
+auth.password_req
+auth.show_password
+auth.sign_in_btn
+auth.signing_in
+auth.signup_desc
+auth.signup_tab
+auth.signup_welcome
+auth.welcome_back
+dashboard.overview
+dashboard.skill
+dashboard.skill_distribution
+dashboard.start_assessment
+dashboard.welcome
+dashboard.your_skills
+igot.subtitle
+igot.title
+nav.assessment
+nav.brand_subtitle
+nav.brand_title
+nav.dashboard
+nav.footer_sub
+nav.footer_text
+nav.igot_courses
+nav.login
+nav.logout
+nav.mcq_generator
+nav.profile
+nav.research_engine
+profile.common_skills
+profile.department
+profile.designation
+profile.edit
+profile.employee_id
+profile.no_skills_selected
+profile.search_skills
+profile.selected_skills
+reassessment.start_reassessment
+result.all_met
+result.change
+result.comparison_desc
+result.correct
+result.course_prioritization
+result.course_recs
+result.current
+result.current_attempt
+result.current_score
+result.decline
+result.declined
+result.duration
+result.explore_courses
+result.gap
+result.high_priority
+result.historical_progression
+result.improved
+result.improvement
+result.meets_req
+result.needs_improvement
+result.no_gaps
+result.overall_score
+result.previous_attempt
+result.previous_score
+result.provider
+result.recommended_close
+result.recommended_courses
+result.required
+result.score
+result.skill_gap_analysis
+result.status
+result.strong
+result.take_another
+result.title
+result.unchanged
+system.error
+system.loading
+system.network_error
+system.something_went_wrong`.split('\n');
+
+const missing = [];
+for (const key of keys) {
+  const parts = key.split('.');
+  if (!en[parts[0]] || en[parts[0]][parts[1]] === undefined) {
+    missing.push(key);
+  }
+}
+console.log('Missing keys in EN:');
+missing.forEach(k => console.log(k));
