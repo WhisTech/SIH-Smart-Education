@@ -188,14 +188,67 @@ app.get('/api/skills', async (req, res) => {
    ========================================================================== */
 
 /**
+ * Helper function to retrieve or link an employee_profiles record for an authenticated user.
+ */
+async function resolveEmployeeProfile(userObj) {
+  if (!userObj?.id) return null;
+  const userId = userObj.id;
+
+  // 1. Check by user_id
+  let { data: profile } = await supabase
+    .from('employee_profiles')
+    .select('id, name, designation_id, employee_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (profile) return profile;
+
+  // 2. Check if user_metadata specifies an employee_id
+  const meta = userObj.user_metadata || {};
+  const empId = meta.employee_id || meta.employeeId;
+  if (empId) {
+    const { data: matched } = await supabase
+      .from('employee_profiles')
+      .select('id, name, designation_id, employee_id')
+      .eq('employee_id', String(empId).trim())
+      .maybeSingle();
+
+    if (matched) {
+      await supabase
+        .from('employee_profiles')
+        .update({ user_id: userId, updated_at: new Date().toISOString() })
+        .eq('id', matched.id);
+      return { ...matched, user_id: userId };
+    }
+  }
+
+  // 3. Fallback: Create default profile for this user
+  const { data: defaultDesig } = await supabase.from('designations').select('id').limit(1).maybeSingle();
+  const desigId = defaultDesig?.id || 'd47400e0-c13a-4b26-b0d2-78e460ca56e3';
+
+  const { data: newProf } = await supabase
+    .from('employee_profiles')
+    .insert({
+      user_id: userId,
+      name: meta.name || userObj.email?.split('@')[0] || 'Official Employee',
+      employee_id: empId || `EMP-${userId.slice(0, 8)}`,
+      designation_id: desigId,
+      department: meta.department || 'National Statistical Office (NSO)',
+      experience_years: meta.experience_years ?? 3
+    })
+    .select('id, name, designation_id, employee_id')
+    .maybeSingle();
+
+  return newProf || null;
+}
+
+/**
  * GET /api/assessment/info
  */
 app.get('/api/assessment/info', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.id;
-    
-    const { data: profile, error: pErr } = await supabase.from('employee_profiles').select('id, name, designation_id').eq('user_id', userId).maybeSingle();
-    if (pErr || !profile) return res.status(400).json({ success: false, message: 'Profile not found. Please complete your profile.' });
+    const profile = await resolveEmployeeProfile(req.user);
+    if (!profile) return res.status(400).json({ success: false, message: 'Profile not found. Please complete your profile.' });
     
     let designationName = 'Programmer';
     if (profile.designation_id) {
@@ -262,7 +315,7 @@ app.get('/api/assessment/reassessment-info', authenticateUser, async (req, res) 
     const userId = req.user.id;
 
     // 1. Fetch Profile & Designation
-    const { data: profile } = await supabase.from('employee_profiles').select('id, name, designation_id').eq('user_id', userId).maybeSingle();
+    const profile = await resolveEmployeeProfile(req.user);
     if (!profile) return res.status(400).json({ success: false, message: 'Profile not found' });
 
     let designationName = 'Official';
@@ -600,7 +653,7 @@ app.post('/api/assessment/start-new', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const requestedType = req.body?.assessmentType;
 
-    const { data: profile } = await supabase.from('employee_profiles').select('id, designation_id').eq('user_id', userId).maybeSingle();
+    const profile = await resolveEmployeeProfile(req.user);
     if (!profile) return res.status(400).json({ success: false, message: 'Profile missing' });
 
     const { data: empSkills } = await supabase.from('employee_skills').select('skill_id').eq('employee_profile_id', profile.id);
@@ -927,12 +980,7 @@ app.post('/api/assessment/:assessmentId/submit', authenticateUser, async (req, r
 
 async function computeAndStoreSkillGaps(userId, assessmentId, supabaseClient) {
   try {
-    const { data: profile } = await supabaseClient
-      .from('employee_profiles')
-      .select('id, designation_id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
+    const profile = await resolveEmployeeProfile({ id: userId });
     const designationId = profile?.designation_id || null;
 
     const { data: skillScores } = await supabaseClient

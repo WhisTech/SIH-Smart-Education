@@ -49,11 +49,34 @@ export function AuthProvider({ children }) {
         return data
       }
 
-      // 2. If no profile exists, check user_metadata or construct fallback profile
+      // 2. Check if user metadata specifies an employee_id matching an existing Civil List profile
       const meta = currentUser.user_metadata || {}
+      const metaEmpId = meta.employee_id || meta.employeeId
+      if (metaEmpId) {
+        const { data: matchedProfile } = await supabase
+          .from('employee_profiles')
+          .select('*')
+          .eq('employee_id', String(metaEmpId).trim())
+          .maybeSingle()
+
+        if (matchedProfile) {
+          console.log('Linking official Civil List profile to user session:', matchedProfile.id)
+          const { data: linkedProfile } = await supabase
+            .from('employee_profiles')
+            .update({ user_id: userId })
+            .eq('id', matchedProfile.id)
+            .select('*')
+            .single()
+
+          const activeProfile = linkedProfile || { ...matchedProfile, user_id: userId }
+          setProfile(activeProfile)
+          return activeProfile
+        }
+      }
+
+      // 3. If no matching profile exists, auto-create profile from user metadata
       console.log('Auto-creating profile from user metadata under authenticated session...')
       
-      // Get a default designation ID if missing
       let targetDesigId = meta.designation_id
       if (!targetDesigId) {
         const { data: desigData } = await supabase.from('designations').select('id').limit(1).maybeSingle()
@@ -65,7 +88,7 @@ export function AuthProvider({ children }) {
         .insert({
           user_id: userId,
           name: meta.name || currentUser.email?.split('@')[0] || 'Official Employee',
-          employee_id: meta.employee_id || `EMP-${Date.now().toString().slice(-4)}`,
+          employee_id: metaEmpId || `EMP-${userId.slice(0, 8)}`,
           designation_id: targetDesigId,
           department: meta.department || 'National Statistical Office (NSO)',
           experience_years: meta.experience_years ?? 3
@@ -76,7 +99,6 @@ export function AuthProvider({ children }) {
       if (!createError && newProfile) {
         setProfile(newProfile)
 
-        // Insert skills if present in metadata
         if (Array.isArray(meta.skill_ids) && meta.skill_ids.length > 0) {
           const skillRows = meta.skill_ids.map((skillId) => ({
             employee_profile_id: newProfile.id,

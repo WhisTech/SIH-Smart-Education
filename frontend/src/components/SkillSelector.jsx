@@ -2,14 +2,14 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const COMMON_SKILL_NAMES = [
-  'Statistical Analysis',
-  'Data Interpretation',
-  'Data Management',
-  'Data Visualization',
   'Official Statistics',
+  'National Accounts',
+  'Statistical Analysis',
   'Survey Methodology',
   'Data Quality Management',
-  'Report Writing & Presentation'
+  'Data Visualization',
+  'Python Programming',
+  'Data Governance'
 ]
 
 export default function SkillSelector({
