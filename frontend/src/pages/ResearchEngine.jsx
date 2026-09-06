@@ -127,35 +127,38 @@ export default function ResearchEngine() {
   return (
     <div className="research-page" style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* 1. COMPACT HEADER */}
-      <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' }}>
-            🔬 {t('Personalized Recommendation Engine')}
-          </h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+      {/* 1. Page Hero Header */}
+      <div className="page-hero-header">
+        <div className="page-hero-content">
+          <span className="page-hero-badge badge-purple">🔬 MoSPI Skill Intelligence Lab</span>
+          <h1 className="page-hero-title">{t('Personalized Recommendation Engine')}</h1>
+          <p className="page-hero-subtitle">
             {t('Research Prototype: Multi-signal fusion (Knowledge Graph, Sequence Mining, Collaborative Filtering)')}
           </p>
         </div>
         
-        {/* 2. EMPLOYEE SELECTION (Horizontal & Compact) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '10px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-          <label style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b', margin: 0 }}>
-            {t('Target Employee:')}
-          </label>
-          <select
-            value={selectedEmpId}
-            onChange={(e) => setSelectedEmpId(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #94a3b8', fontWeight: '600', fontSize: '13px', minWidth: '250px' }}
-          >
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.employee_id.replace('DEMO-', 'EMP-')} - {emp.name} ({emp.designation_name})
-              </option>
-            ))}
-          </select>
+        {/* 2. Employee Selection Dropdown */}
+        <div className="page-hero-actions">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f8fafc', padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+            <label style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b', margin: 0, whiteSpace: 'nowrap' }}>
+              {t('Target Employee:')}
+            </label>
+            <select
+              value={selectedEmpId}
+              onChange={(e) => setSelectedEmpId(e.target.value)}
+              className="auth-input-field"
+              style={{ padding: '6px 10px', fontSize: '13px', minWidth: '260px' }}
+            >
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.employee_id.replace('DEMO-', 'EMP-')} - {emp.name} ({emp.designation_name})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
+
 
       {error && <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', marginBottom: '24px' }}>{error}</div>}
 

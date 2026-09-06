@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import LoadingScreen from '../components/LoadingScreen'
 import { useTranslation } from 'react-i18next'
+import { 
+  ArrowRight, 
+  CheckCircle2, 
+  HelpCircle, 
+  History, 
+  RefreshCw, 
+  Sliders, 
+  Sparkles, 
+  Target, 
+  TrendingUp 
+} from 'lucide-react'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
@@ -69,7 +80,6 @@ export default function Reassessment() {
       const data = await res.json()
       if (!data.success) throw new Error(data.message || 'Failed to initialize reassessment attempt')
 
-      // Navigate to assessment test interface with the active attempt
       navigate(`/assessment?start=true&type=reassessment`)
     } catch (err) {
       console.error('Start reassessment error:', err)
@@ -83,40 +93,55 @@ export default function Reassessment() {
   }
 
   return (
-    <div className="reassessment-page" style={{ maxWidth: '1000px', margin: '30px auto', padding: '0 20px' }}>
-      <div className="page-header" style={{ marginBottom: '30px' }}>
-        <h1 className="page-title" style={{ fontSize: '1.8rem', color: '#1e293b' }}>
-          🎯 AI Competency Reassessment
-        </h1>
-        <p className="page-subtitle" style={{ color: '#64748b', fontSize: '1rem' }}>
-          Validate skill improvements after completing recommended learning modules and update your official competency profile for <strong>{info?.designationName}</strong>.
-        </p>
+    <div className="reassessment-page">
+      {/* Hero Header */}
+      <div className="page-hero-header">
+        <div className="page-hero-content">
+          <span className="page-hero-badge badge-amber">🔄 Continuous Competency Cycle</span>
+          <h1 className="page-hero-title">🎯 AI Competency Reassessment</h1>
+          <p className="page-hero-subtitle">
+            Validate skill improvements after completing recommended learning modules and update your official competency profile for <strong>{info?.designationName}</strong>.
+          </p>
+        </div>
+        <div className="page-hero-actions">
+          <Link to="/dashboard" className="btn btn-outline btn-sm">
+            ← Back to Dashboard
+          </Link>
+        </div>
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: '20px' }}>{error}</div>}
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
+          <strong>Notice:</strong> {error}
+        </div>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        
+      {/* 2-Column Info Grid: Previous Summary & Parameters */}
+      <div className="reassessment-grid-2col">
         {/* Card 1: Previous Performance */}
-        <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '15px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>📈</span> Previous Assessment Summary
-          </h2>
+        <div className="card" style={{ padding: '24px' }}>
+          <div className="card-header-clean">
+            <div className="header-title-group">
+              <span className="section-pill">Baseline Benchmark</span>
+              <h3 className="section-heading">Previous Assessment Summary</h3>
+            </div>
+            <History size={18} color="#0284c7" />
+          </div>
           
           {info?.hasPreviousAssessment && info?.previousAssessment ? (
             <div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginBottom: '15px' }}>
-                <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2563eb' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px', margin: '14px 0 16px' }}>
+                <span style={{ fontSize: '36px', fontWeight: '800', color: '#0284c7', lineHeight: 1 }}>
                   {Math.round(info.previousAssessment.overallScore)}%
                 </span>
-                <span style={{ color: '#64748b', fontSize: '0.95rem' }}>
-                  Overall Competency Score
+                <span style={{ color: '#64748b', fontSize: '13.5px' }}>
+                  Baseline Competency Score
                 </span>
               </div>
-              <div style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.8' }}>
+              <div style={{ fontSize: '13px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div><strong>Completed on:</strong> {new Date(info.previousAssessment.completedAt).toLocaleDateString()}</div>
                 <div><strong>Accuracy:</strong> {info.previousAssessment.correctAnswers} of {info.previousAssessment.totalQuestions} questions correct</div>
-                <div><strong>Attempt ID:</strong> <code style={{ fontSize: '0.8em', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{info.previousAssessment.id.substring(0, 8)}...</code></div>
+                <div><strong>Attempt Reference:</strong> <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{info.previousAssessment.id.substring(0, 8)}...</code></div>
               </div>
             </div>
           ) : (
@@ -127,113 +152,136 @@ export default function Reassessment() {
         </div>
 
         {/* Card 2: Reassessment Parameters */}
-        <div className="card" style={{ padding: '24px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '15px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>⚙️</span> Reassessment Parameters
-          </h2>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.95rem', color: '#334155', lineHeight: '2' }}>
-            <li><strong>Total Questions:</strong> {info?.totalQuestions || 6} Questions</li>
-            <li><strong>Estimated Time:</strong> ~{Math.round(info?.estimatedTime || 10)} Minutes</li>
-            <li><strong>Difficulty:</strong> Adaptive (Calibrated against your previous answers)</li>
-            <li><strong>Target Role:</strong> {info?.designationName}</li>
-            <li><strong>Zero Duplicate Guarantee:</strong> Genuinely new questions tested against your full history</li>
+        <div className="card" style={{ padding: '24px', background: '#f8fafc' }}>
+          <div className="card-header-clean">
+            <div className="header-title-group">
+              <span className="section-pill">Test Protocol</span>
+              <h3 className="section-heading">Reassessment Parameters</h3>
+            </div>
+            <Sliders size={18} color="#475569" />
+          </div>
+          <ul className="assessment-info-list" style={{ marginTop: '14px' }}>
+            <li><span>Total Questions:</span> <strong>{info?.totalQuestions || 6} Questions</strong></li>
+            <li><span>Estimated Time:</span> <strong>~{Math.round(info?.estimatedTime || 10)} Minutes</strong></li>
+            <li><span>Adaptive Difficulty:</span> <strong style={{ color: '#15803d' }}>Calibrated to previous gaps</strong></li>
+            <li><span>Target Cadre:</span> <strong>{info?.designationName}</strong></li>
+            <li><span>XP Bonus:</span> <strong style={{ color: '#ff9933' }}>+150 Reassessment XP</strong></li>
           </ul>
         </div>
       </div>
 
-      {/* Card 3: Skill Gaps Target Section */}
-      <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '10px', color: '#0f172a' }}>
-          📊 Target Skill Gaps to Close
-        </h2>
-        <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '20px' }}>
-          Your performance will be evaluated against the required proficiency standards for each official competency.
-        </p>
+      {/* Target Skill Gaps to Close */}
+      <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+        <div className="card-header-clean">
+          <div className="header-title-group">
+            <span className="section-pill warning">Target Competencies</span>
+            <h3 className="section-heading">Target Skill Gaps to Close</h3>
+          </div>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>Benchmark standard: 80%</span>
+        </div>
 
         {info?.skillGaps && info.skillGaps.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
             {info.skillGaps.map((g) => {
               const isMet = g.assessedScore >= g.requiredScore
               const gapVal = Math.max(0, g.requiredScore - g.assessedScore)
-              const badgeColor = isMet ? '#16a34a' : gapVal <= 15 ? '#ca8a04' : '#dc2626'
-              const badgeText = isMet ? '✓ Requirement Met' : gapVal <= 15 ? '⚠ Needs Improvement' : '🚨 High Priority Gap'
+              const statusClass = isMet ? 'low' : gapVal <= 15 ? 'medium' : 'high'
+              const badgeText = isMet ? '✓ Benchmark Met' : gapVal <= 15 ? '⚠ Needs Improvement' : '⚡ Priority Gap'
 
               return (
-                <div key={g.id || g.skillId} style={{ padding: '16px', background: isMet ? '#f0fdf4' : '#fff', borderRadius: '8px', border: `1px solid ${isMet ? '#bbf7d0' : '#e2e8f0'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: '600', fontSize: '1rem', color: '#1e293b' }}>{g.skillName}</span>
-                    <span style={{ color: badgeColor, fontWeight: '600', fontSize: '0.85rem', background: isMet ? '#dcfce7' : '#fee2e2', padding: '4px 10px', borderRadius: '12px' }}>
+                <div key={g.id || g.skillId} className="gap-card" style={{ margin: 0 }}>
+                  <div className="gap-card-top">
+                    <span className={`gap-priority-pill priority-${statusClass}`}>
                       {badgeText}
+                    </span>
+                    <span className="gap-diff-text">
+                      {isMet ? 'Requirement Met' : `-${gapVal}% Delta`}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b', marginBottom: '6px' }}>
-                    <span>Previous Score: <strong>{g.assessedScore}%</strong></span>
-                    <span>Required Standard: <strong>{g.requiredScore}%</strong></span>
-                    <span>Remaining Gap: <strong>{gapVal}%</strong></span>
+                  <h4 className="gap-skill-title">{g.skillName}</h4>
+
+                  <div className="gap-comparison-row">
+                    <div className="gap-metric">
+                      <span className="gap-metric-label">Previous Score</span>
+                      <strong className="gap-metric-val current">{g.assessedScore}%</strong>
+                    </div>
+                    <div className="gap-arrow">➔</div>
+                    <div className="gap-metric">
+                      <span className="gap-metric-label">Required Standard</span>
+                      <strong className="gap-metric-val target">{g.requiredScore}%</strong>
+                    </div>
                   </div>
 
-                  {/* Progress track */}
-                  <div style={{ position: 'relative', height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${g.requiredScore}%`, width: '2px', background: '#000', zIndex: 5 }} title="Required Standard" />
-                    <div style={{ width: `${g.assessedScore}%`, height: '100%', background: badgeColor, borderRadius: '5px' }} />
+                  {/* Visual gauge */}
+                  <div className="skill-progress-track">
+                    <div className="benchmark-marker" style={{ left: `${g.requiredScore}%` }} />
+                    <div 
+                      className={`skill-progress-fill fill-${statusClass}`} 
+                      style={{ width: `${Math.min(100, g.assessedScore)}%` }} 
+                    />
                   </div>
                 </div>
               )
             })}
           </div>
         ) : (
-          <p style={{ color: '#64748b' }}>No active skill gaps recorded. Start reassessment to establish your competencies.</p>
+          <p style={{ color: '#64748b', marginTop: '10px' }}>No active skill gaps recorded. Start reassessment to establish your competencies.</p>
         )}
       </div>
 
-      {/* Card 4: Recommended Modules Review */}
+      {/* Recommended Learning Modules Preview */}
       {info?.recommendedCourses && info.recommendedCourses.length > 0 && (
-        <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '10px', color: '#0f172a' }}>
-            📚 Associated iGOT Learning Modules
-          </h2>
-          <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '15px' }}>
-            Courses identified to close the competency gaps above before testing:
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '15px' }}>
-            {info.recommendedCourses.slice(0, 4).map((c) => (
-              <div key={c.id || c.courseId} style={{ padding: '14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', color: '#0f172a' }}>{c.title}</h4>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Provider: {c.provider} · Skill: <strong>{c.skillName}</strong></p>
+        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div className="card-header-clean">
+            <div className="header-title-group">
+              <span className="section-pill">Pre-Assessment Prep</span>
+              <h3 className="section-heading">Associated iGOT Learning Modules</h3>
+            </div>
+            <Link to="/igot-courses" className="link-sm">
+              Explore All Courses ➔
+            </Link>
+          </div>
+          
+          <div className="courses-grid-3col" style={{ marginTop: '16px', marginBottom: 0 }}>
+            {info.recommendedCourses.slice(0, 3).map((c) => (
+              <div key={c.id || c.courseId} className="course-card-v2">
+                <div>
+                  <div className="course-card-top">
+                    <span className="course-platform-badge">🏛️ iGOT Module</span>
+                    <span className="course-xp-pill">+100 XP</span>
+                  </div>
+                  <h4 className="course-title-v2">{c.title}</h4>
+                  <div className="course-provider-v2">🏫 {c.provider}</div>
+                  <span className="course-skill-pill">Competency: {c.skillName}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* CTA Card */}
-      <div className="card" style={{ padding: '30px', textAlign: 'center', background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', borderRadius: '12px', color: '#fff' }}>
-        <h2 style={{ fontSize: '1.5rem', color: '#fff', marginBottom: '10px' }}>
-          Ready to Take Your Reassessment?
-        </h2>
-        <p style={{ color: '#bfdbfe', maxWidth: '600px', margin: '0 auto 24px auto', fontSize: '1rem' }}>
-          A new assessment attempt will be created with fresh adaptive questions. Your updated scores will recalculate your skill gaps and update your official recommendations.
+      {/* Launch CTA Card */}
+      <div className="reassessment-cta-card">
+        <span style={{ fontSize: '32px', marginBottom: '8px', display: 'inline-block' }}>🚀</span>
+        <h2>Ready to Validate Your Improvement?</h2>
+        <p>
+          A new reassessment attempt will evaluate your updated statistical knowledge. Scores will recalculate your cadre skill gaps and unlock milestone badges.
         </p>
 
         <button
           type="button"
           onClick={handleStartReassessment}
           disabled={starting || !info || info.totalQuestions === 0}
-          className="btn btn-lg"
-          style={{
-            background: '#ffffff',
-            color: '#1e3a8a',
-            fontWeight: 'bold',
-            padding: '14px 32px',
-            fontSize: '1.1rem',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: starting ? 'not-allowed' : 'pointer',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)'
-          }}
+          className="reassessment-start-btn"
         >
-          {starting ? 'Initializing Reassessment...' : '🚀 Start Reassessment Now'}
+          {starting ? (
+            'Initializing Reassessment...'
+          ) : (
+            <>
+              <RefreshCw size={18} /> Start Reassessment Now <ArrowRight size={18} />
+            </>
+          )}
         </button>
       </div>
     </div>

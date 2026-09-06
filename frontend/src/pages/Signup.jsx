@@ -512,12 +512,12 @@ export default function Signup() {
 
             <button
               type="submit"
-              className="btn btn-primary btn-block btn-lg"
+              className="auth-submit-btn"
               disabled={loading || designationsLoading}
-              style={{ background: '#0f2338', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', width: '100%', cursor: 'pointer' }}
             >
-              {loading ? 'Creating Account & Saving Profile...' : 'Complete Employee Registration'}
+              {loading ? 'Creating Account & Saving Profile...' : 'Complete Employee Registration →'}
             </button>
+
           </form>
 
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', marginTop: '32px' }}>

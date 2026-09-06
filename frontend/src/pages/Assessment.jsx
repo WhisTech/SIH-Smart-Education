@@ -4,6 +4,16 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import LoadingScreen from '../components/LoadingScreen'
 import { useTranslation } from 'react-i18next'
+import { 
+  BrainCircuit, 
+  CheckCircle2, 
+  Clock, 
+  HelpCircle, 
+  Sparkles, 
+  Target, 
+  UserCheck,
+  ArrowRight
+} from 'lucide-react'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
@@ -97,7 +107,6 @@ export default function Assessment() {
          return
       }
 
-      // Validate question structure before updating state
       if (!data.question || !data.question.id || !data.question.questionText || !Array.isArray(data.question.options)) {
         throw new Error(t('Received malformed question from server. Please try again.'))
       }
@@ -114,7 +123,6 @@ export default function Assessment() {
 
   // 3. Start Assessment function
   const handleStart = useCallback(async (type = 'initial') => {
-    // Sanitize type so React synthetic events are NEVER passed as type
     const finalType = typeof type === 'string' && (type === 'reassessment' || type === 'initial') ? type : 'initial'
     
     setError('')
@@ -137,7 +145,6 @@ export default function Assessment() {
       setTotalQuestions(data.totalQuestions)
       setStarted(true)
       
-      // Fetch first question immediately
       await fetchNextQuestion(data.assessmentId)
     } catch (err) {
       setError(err.message || t('Error starting assessment'))
@@ -155,8 +162,6 @@ export default function Assessment() {
     }
   }, [authLoading, user, started, searchParams, fetchInfo, handleStart])
 
-
-
   // 4. Submit Answer & Go Next
   const handleNextQuestion = async () => {
     if (!selectedOption || !currentQuestion?.id || !assessmentId) return;
@@ -173,7 +178,6 @@ export default function Assessment() {
       const data = await res.json()
       if (!data.success) throw new Error(data.message)
       
-      // If we reached the end
       if (currentIndex + 1 >= totalQuestions) {
          await handleSubmitAssessment(assessmentId)
       } else {
@@ -185,8 +189,6 @@ export default function Assessment() {
     }
   }
 
-
-
   if (authLoading || infoLoading) {
     return <LoadingScreen message={t('Loading AI Competency Assessment...')} />
   }
@@ -195,42 +197,98 @@ export default function Assessment() {
   if (!started) {
     return (
       <div className="assessment-page">
-        <div className="card start-screen-card" style={{ maxWidth: '800px', margin: '40px auto', padding: '40px' }}>
-          <h1 className="page-title" style={{ textAlign: 'center', marginBottom: '10px' }}>{t('AI Competency Assessment')}</h1>
-          <p className="page-subtitle" style={{ textAlign: 'center', marginBottom: '40px' }}>
-            {t('This adaptive assessment validates your active competencies against your official designation requirements.')}
-          </p>
-          
-          {error && <div className="alert alert-error">{error}</div>}
-          
+        <div className="page-hero-header">
+          <div className="page-hero-content">
+            <span className="page-hero-badge">🏛️ Official MoSPI Assessment</span>
+            <h1 className="page-hero-title">{t('AI Competency Assessment')}</h1>
+            <p className="page-hero-subtitle">
+              {t('This adaptive assessment validates your active competencies against your official designation requirements.')}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="alert alert-error" style={{ maxWidth: '860px', margin: '0 auto 20px' }}>
+            {error}
+          </div>
+        )}
+
+        <div className="assessment-intro-card">
+          <div className="assessment-intro-header">
+            <span className="assessment-intro-icon" aria-hidden="true">🎯</span>
+            <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px' }}>
+              Adaptive Competency Evaluation
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+              Calibrated to official Indian Statistical Service (ISS) benchmark standards
+            </p>
+          </div>
+
           {assessmentInfo && (
-            <div className="assessment-info-grid" style={{ display: 'grid', gap: '20px', marginBottom: '40px' }}>
-               <div className="info-box" style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px' }}>
-                  <h3>{t('Your Profile')}</h3>
-                  <p><strong>{t('Designation:')}</strong> {assessmentInfo.designationName}</p>
-                  <p><strong>{t('Current Skills:')}</strong> {assessmentInfo.currentSkills.map(s => s.name).join(', ') || t('None')}</p>
-               </div>
-               
-               <div className="info-box" style={{ background: '#f0fdf4', padding: '20px', borderRadius: '8px' }}>
-                  <h3>{t('Assessment Details')}</h3>
-                  <p><strong>{t('Total Questions:')}</strong> {assessmentInfo.totalQuestions}</p>
-                  <p><strong>{t('Estimated Time:')}</strong> {assessmentInfo.estimatedTime} {t('minutes')}</p>
-                  <p><strong>{t('Adaptive Difficulty:')}</strong> {t('Yes, adjusts based on your performance.')}</p>
-               </div>
+            <div className="assessment-info-grid">
+              <div className="assessment-info-box">
+                <h3><UserCheck size={18} color="#0284c7" /> {t('Your Profile')}</h3>
+                <ul className="assessment-info-list">
+                  <li>
+                    <span>{t('Designation:')}</span>
+                    <strong>{assessmentInfo.designationName}</strong>
+                  </li>
+                  <li>
+                    <span>{t('Current Skills:')}</span>
+                    <strong>{assessmentInfo.currentSkills.length} Mapped</strong>
+                  </li>
+                  <li style={{ flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                    {assessmentInfo.currentSkills.map(s => (
+                      <span key={s.id} className="course-skill-pill" style={{ fontSize: '11px' }}>
+                        {s.name}
+                      </span>
+                    ))}
+                  </li>
+                </ul>
+              </div>
+
+              <div className="assessment-info-box highlight">
+                <h3><Clock size={18} color="#15803d" /> {t('Assessment Details')}</h3>
+                <ul className="assessment-info-list">
+                  <li>
+                    <span>{t('Total Questions:')}</span>
+                    <strong>{assessmentInfo.totalQuestions} Questions</strong>
+                  </li>
+                  <li>
+                    <span>{t('Estimated Time:')}</span>
+                    <strong>{assessmentInfo.estimatedTime} {t('minutes')}</strong>
+                  </li>
+                  <li>
+                    <span>Adaptive Testing:</span>
+                    <strong style={{ color: '#15803d' }}>Active AI Engine</strong>
+                  </li>
+                  <li>
+                    <span>XP Reward:</span>
+                    <strong style={{ color: '#ff9933' }}>+1,000 Base XP</strong>
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
 
           <div style={{ textAlign: 'center' }}>
             <button 
-               type="button" 
-               className="btn btn-primary btn-lg" 
-               onClick={() => handleStart('initial')} 
-               disabled={loadingAction || !assessmentInfo || assessmentInfo.currentSkills.length === 0}
+              type="button" 
+              className="btn btn-primary btn-lg" 
+              onClick={() => handleStart('initial')} 
+              disabled={loadingAction || !assessmentInfo || assessmentInfo.currentSkills.length === 0}
+              style={{ padding: '14px 36px', fontSize: '16px', borderRadius: '10px' }}
             >
-               {loadingAction ? t('Initializing Assessment...') : t('Start Assessment')}
+              {loadingAction ? t('Initializing Assessment...') : (
+                <>
+                  <BrainCircuit size={18} /> {t('Start Assessment')}
+                </>
+              )}
             </button>
             {(!assessmentInfo || assessmentInfo.currentSkills.length === 0) && (
-               <p style={{ marginTop: '15px', color: '#dc2626' }}>{t('You must select your current skills in your Profile first.')}</p>
+              <p style={{ marginTop: '15px', color: '#dc2626', fontSize: '13.5px' }}>
+                {t('You must select your current skills in your Profile first.')}
+              </p>
             )}
           </div>
         </div>
@@ -249,45 +307,50 @@ export default function Assessment() {
 
   return (
     <div className="assessment-page">
-      <div className="assessment-header-box">
-        <div>
-          <h1 className="page-title">{t('AI Competency Assessment')}</h1>
-          <p className="page-subtitle">{t('Answer the following question to advance.')}</p>
+      <div className="page-hero-header">
+        <div className="page-hero-content">
+          <span className="page-hero-badge">🎯 Active Competency Test</span>
+          <h1 className="page-hero-title">{t('AI Competency Assessment')}</h1>
+          <p className="page-hero-subtitle">{t('Answer the following question to advance.')}</p>
         </div>
-        <div className="quiz-counter-pill">
+        <div className="gap-priority-pill priority-medium" style={{ fontSize: '13px', padding: '6px 14px' }}>
           {t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}
         </div>
       </div>
 
       {error && (
-        <div className="alert alert-error" role="alert">
+        <div className="alert alert-error" role="alert" style={{ maxWidth: '900px', margin: '0 auto 20px' }}>
           <strong>{t('Notice:')}</strong> {error}
         </div>
       )}
 
-      <div className="card quiz-card">
-        <div className="progress-container">
-          <div className="progress-label-row">
-            <span className="progress-step-text">{t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}</span>
-            <span className="progress-pct-text">{progressPct}{t('% Complete')}</span>
+      <div className="quiz-active-card">
+        {/* Progress bar */}
+        <div className="quiz-progress-wrapper">
+          <div className="quiz-progress-label">
+            <span>{t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}</span>
+            <strong>{progressPct}{t('% Complete')}</strong>
           </div>
-          <div className="progress-bar-track">
-            <div className="progress-bar-fill" style={{ width: `${progressPct}%` }} />
+          <div className="quiz-progress-bar">
+            <div className="quiz-progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
 
-        <div className="quiz-meta-row">
-          <span className="quiz-skill-tag">
-            {t('Skill:')} <strong>{currentQuestion.skillName}</strong>
+        {/* Question Metadata Tags */}
+        <div className="quiz-top-meta">
+          <span className="quiz-domain-tag">
+            <Target size={14} /> {t('Skill:')} <strong>{currentQuestion.skillName}</strong>
           </span>
-          <span className={`quiz-diff-tag diff-${currentQuestion.difficulty || 'medium'}`}>
-            {(currentQuestion.difficulty || 'medium').toUpperCase()}
+          <span className={`quiz-difficulty-tag diff-${currentQuestion.difficulty?.toLowerCase() || 'medium'}`}>
+            {(currentQuestion.difficulty || 'medium').toUpperCase()} DIFFICULTY
           </span>
         </div>
 
-        <h2 className="quiz-question-text">{currentQuestion.questionText}</h2>
+        {/* Question text */}
+        <h2 className="quiz-question-heading">{currentQuestion.questionText}</h2>
 
-        <div className="quiz-options-grid">
+        {/* Options List */}
+        <div className="quiz-options-list">
           {currentQuestion.options.map((optText, idx) => {
             const optionLetter = String.fromCharCode(65 + idx)
             const isSelected = selectedOption === optText
@@ -295,25 +358,37 @@ export default function Assessment() {
               <button
                 key={idx}
                 type="button"
-                className={`quiz-option-card ${isSelected ? 'selected' : ''}`}
+                className={`quiz-option-item ${isSelected ? 'selected' : ''}`}
                 onClick={() => setSelectedOption(optText)}
                 disabled={loadingAction}
               >
-                <span className="option-badge">{optionLetter}</span>
-                <span className="option-text">{optText}</span>
+                <span className="option-circle-letter">{optionLetter}</span>
+                <span className="quiz-option-text">{optText}</span>
               </button>
             )
           })}
         </div>
 
-        <div className="quiz-footer-nav" style={{ justifyContent: 'flex-end' }}>
+        {/* Actions Bar */}
+        <div className="quiz-actions-bar">
           <button
             type="button"
-            className={currentIndex + 1 >= totalQuestions ? "btn btn-success btn-lg" : "btn btn-primary"}
+            className={currentIndex + 1 >= totalQuestions ? "btn btn-primary btn-lg" : "btn btn-primary"}
             onClick={handleNextQuestion}
             disabled={loadingAction || !selectedOption}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
-            {loadingAction ? t('Processing...') : (currentIndex + 1 >= totalQuestions ? t('Submit Assessment') : t('Next Question →'))}
+            {loadingAction ? (
+              t('Processing...')
+            ) : currentIndex + 1 >= totalQuestions ? (
+              <>
+                <CheckCircle2 size={18} /> {t('Submit Assessment')}
+              </>
+            ) : (
+              <>
+                {t('Next Question →')}
+              </>
+            )}
           </button>
         </div>
       </div>

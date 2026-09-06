@@ -1,14 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import LoadingScreen from '../components/LoadingScreen'
+import SkillScoreBar from '../components/SkillScoreBar'
+import { calculateXpFromAssessment, calculateLevel } from '../lib/gamification'
+import { useCountUp } from '../lib/useCountUp'
 import { useTranslation } from 'react-i18next'
+import { 
+  Award, 
+  CheckCircle2, 
+  ExternalLink, 
+  GraduationCap, 
+  RefreshCw, 
+  Sparkles, 
+  TrendingDown, 
+  TrendingUp,
+  ArrowRight
+} from 'lucide-react'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function AssessmentResult() {
   const { assessmentId } = useParams()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+
 
   const [result, setResult] = useState(null)
   const [skillGaps, setSkillGaps] = useState([])
@@ -46,12 +61,9 @@ export default function AssessmentResult() {
         })
         const compData = await compResponse.json()
         if (compData.success && compData.hasComparison) {
-           // Ensure it's comparing against a DIFFERENT previous assessment, not itself
-           if (compData.current.id === assessmentId && compData.previous.id !== assessmentId) {
-               setComparison(compData)
-           } else if (compData.previous.id === assessmentId) {
-               // We might be viewing an old one, ignore
-           }
+            if (compData.current.id === assessmentId && compData.previous.id !== assessmentId) {
+                setComparison(compData)
+            }
         }
 
         // 4. Fetch recommended courses based on gaps
@@ -75,218 +87,279 @@ export default function AssessmentResult() {
     if (assessmentId) fetchResults()
   }, [assessmentId])
 
+  // Calculate XP and level
+  const earnedXp = useMemo(() => {
+    return calculateXpFromAssessment(result)
+  }, [result])
+
+  const levelProgress = useMemo(() => {
+    return calculateLevel(earnedXp)
+  }, [earnedXp])
+
   if (loading) return <LoadingScreen message="Calculating adaptive skill-wise scores & AI analysis..." />
-  if (error || !result) return <div className="alert alert-error">{error || 'No assessment data.'}</div>
+  if (error || !result) return <div className="alert alert-error" style={{ maxWidth: '900px', margin: '30px auto' }}>{error || 'No assessment data.'}</div>
 
   const { overallScore, totalQuestions, correctAnswers, skillScores } = result
-
-  // Rendering logic
-  const renderComparison = () => {
-    if (!comparison) return null;
-    const diff = comparison.current.overall - comparison.previous.overall;
-    const isImprovement = diff >= 0;
-    
-    return (
-      <div className="card comparison-card" style={{ padding: '24px', marginBottom: '24px', borderLeft: isImprovement ? '6px solid #16a34a' : '6px solid #dc2626', background: '#ffffff', borderRadius: '10px' }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h2 className="card-section-title" style={{ margin: 0 }}>📈 {t('result.historical_progression')}</h2>
-            <span style={{ 
-               background: isImprovement ? '#dcfce7' : '#fee2e2', 
-               color: isImprovement ? '#166534' : '#991b1b', 
-               fontWeight: 'bold', 
-               padding: '4px 12px', 
-               borderRadius: '20px',
-               fontSize: '0.9rem' 
-            }}>
-               {diff >= 0 ? `+${Math.round(diff)}% ${t('result.improvement')}` : `${Math.round(diff)}% ${t('result.decline')}`}
-            </span>
-         </div>
-         
-         <p style={{ color: '#475569', fontSize: '0.95rem' }}>
-            {t('result.previous_attempt')}: <strong>{Math.round(comparison.previous.overall)}%</strong> &rarr; {t('result.current_attempt')}: <strong>{Math.round(comparison.current.overall)}%</strong>
-         </p>
-         
-         <div style={{ overflowX: 'auto', marginTop: '15px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-               <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                     <th style={{ padding: '10px 14px' }}>{t('dashboard.skill')}</th>
-                     <th style={{ padding: '10px 14px' }}>{t('result.previous_score')}</th>
-                     <th style={{ padding: '10px 14px' }}>{t('result.current_score')}</th>
-                     <th style={{ padding: '10px 14px' }}>{t('result.change')}</th>
-                     <th style={{ padding: '10px 14px' }}>{t('result.status')}</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {comparison.current.scores.map(curr => {
-                     const prev = comparison.previous.scores.find(p => p.skill_id === curr.skill_id);
-                     const pScore = prev ? Number(prev.score_percentage) : 0;
-                     const cScore = Number(curr.score_percentage);
-                     const change = cScore - pScore;
-                     
-                     const skillNameObj = skillScores.find(s => s.skillId === curr.skill_id);
-                     const name = skillNameObj ? skillNameObj.skillName : 'Skill';
-
-                     let statusText = t('result.unchanged');
-                     let statusBg = '#f1f5f9';
-                     let statusColor = '#475569';
-
-                     if (change > 0) {
-                        statusText = `↑ ${t('result.improved')}`;
-                        statusBg = '#dcfce7';
-                        statusColor = '#166534';
-                     } else if (change < 0) {
-                        statusText = `↓ ${t('result.declined')}`;
-                        statusBg = '#fee2e2';
-                        statusColor = '#991b1b';
-                     }
-                     
-                     return (
-                        <tr key={curr.skill_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                           <td style={{ padding: '12px 14px', fontWeight: '600' }}>{name}</td>
-                           <td style={{ padding: '12px 14px' }}>{Math.round(pScore)}%</td>
-                           <td style={{ padding: '12px 14px', fontWeight: 'bold' }}>{Math.round(cScore)}%</td>
-                           <td style={{ padding: '12px 14px', color: change >= 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
-                              {change > 0 ? `+${Math.round(change)}%` : change < 0 ? `${Math.round(change)}%` : '0%'}
-                           </td>
-                           <td style={{ padding: '12px 14px' }}>
-                              <span style={{ background: statusBg, color: statusColor, padding: '3px 8px', borderRadius: '6px', fontSize: '0.85em', fontWeight: '600' }}>
-                                 {statusText}
-                              </span>
-                           </td>
-                        </tr>
-                     )
-                  })}
-               </tbody>
-            </table>
-         </div>
-      </div>
-    );
-  }
-
-  const renderSkillGaps = () => {
-     return (
-      <div className="card skill-gap-analysis-card" style={{ marginBottom: '20px' }}>
-        <h2 className="card-section-title">📊 {t('result.skill_gap_analysis')}</h2>
-        <p className="section-desc">{t('result.comparison_desc')}</p>
-
-        {skillGaps.length === 0 ? (
-          <p>{t('result.no_gaps')}</p>
-        ) : (
-          <div className="gaps-list">
-             {skillGaps.map(gap => {
-                const gapVal = Math.max(0, gap.requiredScore - gap.assessedScore);
-                const isMet = gap.assessedScore >= gap.requiredScore;
-                
-                let status = t('result.strong');
-                let color = '#16a34a';
-                if (!isMet) {
-                   if (gapVal <= 10) { status = t('result.needs_improvement'); color = '#ca8a04'; }
-                   else { status = t('result.high_priority'); color = '#dc2626'; }
-                } else if (gap.assessedScore === gap.requiredScore) {
-                   status = t('result.meets_req');
-                }
-
-                return (
-                   <div key={gap.id} style={{ marginBottom: '25px', padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                         <strong>{gap.skillName}</strong>
-                         <span style={{ color, fontWeight: 'bold' }}>{status}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', color: '#64748b', marginBottom: '5px' }}>
-                         <span>{t('result.current')}: {gap.assessedScore}%</span>
-                         <span>{t('result.required')}: {gap.requiredScore}%</span>
-                         <span>{t('result.gap')}: {gapVal}%</span>
-                      </div>
-                      
-                      {/* Visual Bar */}
-                      <div style={{ position: 'relative', height: '24px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                         {/* Required Target Marker */}
-                         <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${gap.requiredScore}%`, width: '2px', background: '#000', zIndex: 10 }} />
-                         {/* Assessed Bar */}
-                         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${gap.assessedScore}%`, background: color }} />
-                      </div>
-                   </div>
-                )
-             })}
-          </div>
-        )}
-      </div>
-     )
-  }
-
-  const renderRecommendedCourses = () => {
-      // Only recommend courses where there is an actual gap > 0
-      const gapsWithNeeds = skillGaps.filter(g => g.gapPercentage > 0).map(g => g.skillId);
-      const filteredCourses = courses.filter(c => gapsWithNeeds.includes(c.skillId));
-
-      return (
-         <div className="card recommended-courses-card">
-            <h2 className="card-section-title">{t('result.recommended_courses')}</h2>
-            <p>{t('result.course_prioritization')}</p>
-            {filteredCourses.length === 0 ? (
-               <p style={{ color: '#16a34a', fontWeight: 'bold', marginTop: '10px' }}>✓ {t('result.all_met')}</p>
-            ) : (
-               <ul style={{ listStyle: 'none', padding: 0 }}>
-                  {filteredCourses.map(course => {
-                     const skill = skillGaps.find(g => g.skillId === course.skillId);
-                     return (
-                        <li key={course.courseId || course.id} style={{ background: '#f0fdf4', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '1px solid #bbf7d0' }}>
-                           <h4 style={{ margin: '0 0 5px 0' }}>{course.title}</h4>
-                           <p style={{ margin: 0, fontSize: '0.9em', color: '#166534' }}>{t('result.provider')}: {course.provider} | {t('result.duration')}: {course.duration || 'Self-paced'}</p>
-                           <p style={{ margin: '5px 0 0 0', fontSize: '0.85em' }}>
-                              {t('result.recommended_close')} <strong>{skill?.gapPercentage}%</strong> {t('result.gap')} in <strong>{skill?.skillName}</strong>.
-                           </p>
-                        </li>
-                     )
-                  })}
-               </ul>
-            )}
-            
-            <div style={{ marginTop: '25px', paddingTop: '15px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-               <Link 
-                  to="/igot-courses" 
-                  className="btn btn-primary"
-                  style={{ 
-                     display: 'inline-flex', 
-                     alignItems: 'center', 
-                     gap: '10px', 
-                     padding: '12px 24px', 
-                     fontSize: '1rem', 
-                     fontWeight: '600',
-                     borderRadius: '8px',
-                     textDecoration: 'none'
-                  }}
-               >
-                  <span>🎓 {t('result.explore_courses')}</span> &rarr;
-               </Link>
-            </div>
-         </div>
-      );
-  }
+  const roundedOverall = Math.round(overallScore || 0)
+  const animatedOverall = useCountUp(roundedOverall, 1200)
+  const animatedEarnedXp = useCountUp(earnedXp, 1000)
 
   return (
     <div className="result-page">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">{t('result.title')}</h1>
-          <p className="page-subtitle">{t('result.overall_score')}: <strong>{Math.round(overallScore)}%</strong> ({correctAnswers}/{totalQuestions} {t('result.correct')})</p>
+      {/* Page Hero Header */}
+      <div className="page-hero-header">
+        <div className="page-hero-content">
+          <span className="page-hero-badge badge-green">✓ Evaluation Completed</span>
+          <h1 className="page-hero-title">{t('result.title')}</h1>
+          <p className="page-hero-subtitle">
+            Competency score calibrated against MoSPI official benchmark standards
+          </p>
         </div>
-        <div className="header-actions">
-           <Link to="/reassessment" className="btn btn-primary" style={{ marginRight: '10px' }}>
-              🎯 {t('reassessment.start_reassessment')}
-           </Link>
-           <Link to="/assessment" className="btn btn-outline" style={{ marginRight: '10px' }}>
-              {t('result.take_another')}
-           </Link>
+        <div className="page-hero-actions">
+          <Link to="/reassessment" className="btn btn-primary btn-sm">
+            <RefreshCw size={15} /> {t('reassessment.start_reassessment')}
+          </Link>
+          <Link to="/assessment" className="btn btn-outline btn-sm">
+            {t('result.take_another')}
+          </Link>
         </div>
       </div>
 
-      {renderComparison()}
-      
-      {renderSkillGaps()}
-      
-      {renderRecommendedCourses()}
+      {/* Hero Score Showcase Banner */}
+      <div className="result-score-banner" style={{ '--score-pct': `${animatedOverall}%` }}>
+        <div className="result-score-main">
+          <div className="result-score-ring">
+            <div className="result-score-inner">
+              <span className="result-score-pct-text">{animatedOverall}%</span>
+              <span className="result-score-sub">Score</span>
+            </div>
+          </div>
+
+
+          <div className="result-meta-info">
+            <h2>Overall Competency Rating</h2>
+            <p>
+              Accuracy: <strong>{correctAnswers} / {totalQuestions} questions correct</strong>
+            </p>
+            <p style={{ marginTop: '4px' }}>
+              Status: <span className="tag tag-auth" style={{ color: '#ffffff' }}>Official Record Updated</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Gamified XP Gain Card */}
+        <div className="result-xp-reward-box">
+          <span className="xp-icon animated-pulse" aria-hidden="true">✨</span>
+          <div className="result-xp-text">
+            <span className="xp-val">+{animatedEarnedXp.toLocaleString()} XP</span>
+            <span className="xp-lbl">Experience Gained</span>
+          </div>
+          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '14px', marginLeft: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#cbd5e1', display: 'block' }}>Current Tier</span>
+            <strong style={{ color: '#ffffff', fontSize: '13px' }}>Lvl {levelProgress.level} · {levelProgress.title}</strong>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Historical Comparison Table (if reassessment) */}
+      {comparison && (
+        <div className="card comparison-card">
+          <div className="card-header-clean">
+            <div className="header-title-group">
+              <span className="section-pill">Reassessment Delta</span>
+              <h3 className="section-heading">{t('result.historical_progression')}</h3>
+            </div>
+            <span className={`delta-badge ${comparison.current.overall >= comparison.previous.overall ? 'delta-pos' : 'delta-neg'}`}>
+              {comparison.current.overall >= comparison.previous.overall ? (
+                <>
+                  <TrendingUp size={14} /> +{Math.round(comparison.current.overall - comparison.previous.overall)}% {t('result.improvement')}
+                </>
+              ) : (
+                <>
+                  <TrendingDown size={14} /> {Math.round(comparison.current.overall - comparison.previous.overall)}% {t('result.decline')}
+                </>
+              )}
+            </span>
+          </div>
+
+          <p style={{ color: '#64748b', fontSize: '13.5px', margin: '0 0 12px' }}>
+            {t('result.previous_attempt')}: <strong>{Math.round(comparison.previous.overall)}%</strong> &rarr; {t('result.current_attempt')}: <strong>{Math.round(comparison.current.overall)}%</strong>
+          </p>
+
+          <div className="comparison-table-wrapper">
+            <table className="comparison-table">
+              <thead>
+                <tr>
+                  <th>{t('dashboard.skill')}</th>
+                  <th>{t('result.previous_score')}</th>
+                  <th>{t('result.current_score')}</th>
+                  <th>{t('result.change')}</th>
+                  <th>{t('result.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.current.scores.map(curr => {
+                  const prev = comparison.previous.scores.find(p => p.skill_id === curr.skill_id);
+                  const pScore = prev ? Number(prev.score_percentage) : 0;
+                  const cScore = Number(curr.score_percentage);
+                  const change = cScore - pScore;
+                  
+                  const skillNameObj = skillScores?.find(s => s.skillId === curr.skill_id);
+                  const name = skillNameObj ? skillNameObj.skillName : 'Statistical Competency';
+
+                  return (
+                    <tr key={curr.skill_id}>
+                      <td style={{ fontWeight: '600' }}>{name}</td>
+                      <td>{Math.round(pScore)}%</td>
+                      <td style={{ fontWeight: '700' }}>{Math.round(cScore)}%</td>
+                      <td>
+                        <span className={`delta-badge ${change > 0 ? 'delta-pos' : change < 0 ? 'delta-neg' : 'delta-neutral'}`}>
+                          {change > 0 ? `+${Math.round(change)}%` : change < 0 ? `${Math.round(change)}%` : '0%'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`tag ${change >= 0 ? 'tag-success' : 'tag-warning'}`}>
+                          {change > 0 ? `↑ ${t('result.improved')}` : change < 0 ? `↓ ${t('result.declined')}` : t('result.unchanged')}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Skill Scores with Benchmark Marker */}
+      <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
+        <div className="card-header-clean">
+          <div className="header-title-group">
+            <span className="section-pill">Competency Breakdown</span>
+            <h3 className="section-heading">Assessed Skills vs Cadre Benchmark (80%)</h3>
+          </div>
+        </div>
+
+        {skillScores && skillScores.length > 0 ? (
+          <div style={{ marginTop: '14px' }}>
+            {skillScores.map((ss) => (
+              <SkillScoreBar 
+                key={ss.skillId}
+                skillName={ss.skillName}
+                percentage={ss.percentage}
+                questionsCount={ss.questionsCount}
+                correctCount={ss.correctCount}
+                benchmark={80}
+              />
+            ))}
+          </div>
+        ) : (
+          <p style={{ color: '#64748b' }}>No individual skill scores available.</p>
+        )}
+      </div>
+
+      {/* Skill-Gap Analysis Card */}
+      <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
+        <div className="card-header-clean">
+          <div className="header-title-group">
+            <span className="section-pill warning">Priority Action</span>
+            <h3 className="section-heading">{t('result.skill_gap_analysis')}</h3>
+          </div>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>{skillGaps.length} Target Gaps Identified</span>
+        </div>
+
+        {skillGaps.length === 0 ? (
+          <p style={{ color: '#15803d', fontWeight: '600' }}>✓ {t('result.no_gaps')}</p>
+        ) : (
+          <div className="gaps-list" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+            {skillGaps.map(gap => {
+              const gapVal = Math.max(0, gap.requiredScore - gap.assessedScore);
+              const isMet = gap.assessedScore >= gap.requiredScore;
+              
+              let statusClass = 'high'
+              let statusText = t('result.high_priority')
+              if (isMet) {
+                statusClass = 'low'
+                statusText = t('result.meets_req')
+              } else if (gapVal <= 15) {
+                statusClass = 'medium'
+                statusText = t('result.needs_improvement')
+              }
+
+              return (
+                <div key={gap.id} className="gap-card" style={{ margin: 0 }}>
+                  <div className="gap-card-top">
+                    <span className={`gap-priority-pill priority-${statusClass}`}>
+                      {statusText}
+                    </span>
+                    <span className="gap-diff-text">
+                      {isMet ? 'Benchmark Met' : `-${gapVal}% Delta`}
+                    </span>
+                  </div>
+
+                  <h4 className="gap-skill-title">{gap.skillName}</h4>
+
+                  <div className="gap-comparison-row">
+                    <div className="gap-metric">
+                      <span className="gap-metric-label">{t('result.current')}</span>
+                      <strong className="gap-metric-val current">{gap.assessedScore}%</strong>
+                    </div>
+                    <div className="gap-arrow" aria-hidden="true">➔</div>
+                    <div className="gap-metric">
+                      <span className="gap-metric-label">{t('result.required')}</span>
+                      <strong className="gap-metric-val target">{gap.requiredScore}%</strong>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Recommended Courses Card */}
+      <div className="card" style={{ padding: '24px' }}>
+        <div className="card-header-clean">
+          <div className="header-title-group">
+            <span className="section-pill">Curated Learning</span>
+            <h3 className="section-heading">{t('result.recommended_courses')}</h3>
+          </div>
+          <Link to="/igot-courses" className="link-sm">
+            {t('result.explore_courses')} ➔
+          </Link>
+        </div>
+
+        {courses.length === 0 ? (
+          <p style={{ color: '#15803d', fontWeight: '600' }}>✓ {t('result.all_met')}</p>
+        ) : (
+          <div className="courses-grid-3col" style={{ marginTop: '16px', marginBottom: 0 }}>
+            {courses.slice(0, 3).map((rec) => (
+              <div key={rec.id} className="course-card-v2">
+                <div>
+                  <div className="course-card-top">
+                    <span className="course-platform-badge">🏛️ iGOT Karmayogi</span>
+                    <span className="course-xp-pill">+100 XP</span>
+                  </div>
+                  <h4 className="course-title-v2">{rec.title}</h4>
+                  <div className="course-provider-v2">🏫 {rec.provider}</div>
+                  <p className="course-desc-v2">💡 {rec.reason}</p>
+                </div>
+                <div>
+                  <a
+                    href={rec.externalUrl || 'https://igotkarmayogi.gov.in/'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-sm btn-block"
+                  >
+                    View Module on iGOT →
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -490,6 +490,7 @@ app.get('/api/assessment/user/latest', authenticateUser, async (req, res) => {
       success: true,
       latestAssessment: {
         assessmentId: assessment.id,
+        assessment_type: assessment.assessment_type || 'initial',
         overallScore: Number(assessment.score_percentage || 0),
         totalQuestions: assessment.total_questions,
         correctAnswers: assessment.correct_answers,
@@ -503,6 +504,137 @@ app.get('/api/assessment/user/latest', authenticateUser, async (req, res) => {
     res.status(500).json({ success: false, message: err.message })
   }
 });
+
+/**
+ * GET /api/assessment/user/workflow-status
+ * Dynamically computes the full 4-stage competency workflow status and achievement status
+ * from real user database records.
+ */
+app.get('/api/assessment/user/workflow-status', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const profile = await resolveEmployeeProfile(req.user);
+
+    // Stage 1: Profile & Skills
+    let profileCompleted = false;
+    let skillsCount = 0;
+    if (profile && profile.designation_id && profile.name) {
+      const { count } = await supabase
+        .from('employee_skills')
+        .select('id', { count: 'exact', head: true })
+        .eq('employee_profile_id', profile.id);
+      skillsCount = count || 0;
+      profileCompleted = skillsCount > 0;
+    }
+
+    // Stage 2: Initial AI Assessment
+    const { data: allUserAssessments, error: assessErr } = await supabase
+      .from('assessments')
+      .select('id, assessment_type, score_percentage, total_questions, correct_answers, completed_at, status')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false });
+
+    if (assessErr) throw assessErr;
+
+    const completedAssessments = allUserAssessments || [];
+    const initialAssessment = completedAssessments.find(a => a.assessment_type === 'initial') || completedAssessments[completedAssessments.length - 1];
+    const initialAssessmentCompleted = Boolean(initialAssessment);
+
+    // Stage 3: Skill Gap Analysis
+    let skillGapAnalysisCompleted = false;
+    let gapsCount = 0;
+    if (initialAssessment) {
+      const { data: gaps } = await supabase
+        .from('skill_gaps')
+        .select('id, priority, gap_percentage')
+        .eq('assessment_id', initialAssessment.id);
+      
+      gapsCount = gaps?.length || 0;
+      skillGapAnalysisCompleted = gapsCount > 0;
+    }
+
+    // Stage 4: Learning / iGOT Reassessment
+    const reassessment = completedAssessments.find(a => a.assessment_type === 'reassessment');
+    const reassessmentCompleted = Boolean(reassessment);
+
+    // Full Cycle Complete
+    const isCycleFullyCompleted = Boolean(profileCompleted && initialAssessmentCompleted && skillGapAnalysisCompleted && reassessmentCompleted);
+
+    // Real Achievements & Badges calculation
+    const allSkillScores = [];
+    if (completedAssessments.length > 0) {
+      const assessIds = completedAssessments.map(a => a.id);
+      const { data: scores } = await supabase
+        .from('assessment_skill_scores')
+        .select('assessment_id, skill_id, score_percentage')
+        .in('assessment_id', assessIds);
+      if (scores) allSkillScores.push(...scores);
+    }
+
+    const hasAnyAssessment = completedAssessments.length > 0;
+    const hasHighScore = completedAssessments.some(a => Number(a.score_percentage || 0) >= 80);
+    const hasPerfectSkill = allSkillScores.some(s => Number(s.score_percentage || 0) === 100);
+    const hasGapRegistered = skillGapAnalysisCompleted;
+    const hasReassessment = reassessmentCompleted;
+    const hasFullCycle = isCycleFullyCompleted;
+
+    // Calculate total accumulated XP from all completed activities
+    let totalXp = 0;
+    completedAssessments.forEach(a => {
+      const scorePct = Number(a.score_percentage || 0);
+      const correct = Number(a.correct_answers || 0);
+      totalXp += Math.round(scorePct * 10) + (correct * 25) + (a.assessment_type === 'reassessment' ? 150 : 100);
+    });
+
+    if (hasFullCycle) {
+      totalXp += 500; // Bonus for completing entire competency workflow cycle!
+    }
+
+    res.json({
+      success: true,
+      workflow: {
+        stage1_profile: {
+          completed: profileCompleted,
+          title: 'Profile & Skills',
+          description: profileCompleted ? `${skillsCount} skills mapped to designation` : 'Incomplete profile or skills',
+          skillsCount
+        },
+        stage2_assessment: {
+          completed: initialAssessmentCompleted,
+          title: 'AI Competency Assessment',
+          description: initialAssessmentCompleted ? `Completed (${Math.round(initialAssessment.score_percentage)}%)` : 'Pending initial evaluation',
+          score: initialAssessment ? Number(initialAssessment.score_percentage) : null
+        },
+        stage3_skillGaps: {
+          completed: skillGapAnalysisCompleted,
+          title: 'Skill Gap Analysis',
+          description: skillGapAnalysisCompleted ? `${gapsCount} competency benchmarks evaluated` : 'Pending assessment completion',
+          gapsCount
+        },
+        stage4_reassessment: {
+          completed: reassessmentCompleted,
+          title: 'Learning / iGOT Reassessment',
+          description: reassessmentCompleted ? `Reassessment verified (${Math.round(reassessment.score_percentage)}%)` : 'Ready for adaptive re-evaluation',
+          score: reassessment ? Number(reassessment.score_percentage) : null
+        },
+        isCycleFullyCompleted
+      },
+      achievements: [
+        { id: 'first_assessment', title: 'First Step', icon: '🎯', description: 'Completed your first official AI competency assessment', earned: hasAnyAssessment },
+        { id: 'high_scorer', title: 'Merit Holder', icon: '🌟', description: 'Achieved 80% or higher overall competency score', earned: hasHighScore },
+        { id: 'perfectionist', title: 'Flawless Section', icon: '🏆', description: 'Scored 100% on at least one statistical skill domain', earned: hasPerfectSkill },
+        { id: 'gap_closer', title: 'Active Learner', icon: '📚', description: 'Identified competency benchmarks and registered for learning', earned: hasGapRegistered },
+        { id: 'reassessment_ready', title: 'Resilient Analyst', icon: '🔄', description: 'Participated in a competency reassessment cycle', earned: hasReassessment },
+        { id: 'cycle_master', title: 'Cycle Master', icon: '👑', description: 'Successfully completed the entire 4-stage MoSPI competency cycle', earned: hasFullCycle }
+      ],
+      totalXp
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 
 /**
  * GET /api/assessment/user/history

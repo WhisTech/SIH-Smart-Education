@@ -202,23 +202,24 @@ export default function McqGenerator() {
 
   return (
     <div className="mcq-page">
-      {/* Page Header */}
-      <div className="page-header-row">
-        <div>
-          <div className="page-tag">
-            <span className="sparkle-icon">✨</span> {t('Gemini AI Powered')}
-          </div>
-          <h1 className="page-title">{t('AI MCQ Generator & Quiz')}</h1>
-          <p className="page-subtitle">
+      {/* Page Hero Header */}
+      <div className="page-hero-header">
+        <div className="page-hero-content">
+          <span className="page-hero-badge badge-purple">✨ Gemini AI Assessment Engine</span>
+          <h1 className="page-hero-title">{t('AI MCQ Generator & Quiz')}</h1>
+          <p className="page-hero-subtitle">
             {t('Upload any statistical report, manual, or policy document in PDF to generate verified questions, test your comprehension in Quiz Mode, and inspect detailed grounding explanations.')}
           </p>
         </div>
         {quizData && (
-          <button type="button" className="btn btn-outline" onClick={handleResetAll}>
-            {t('Upload New Document')}
-          </button>
+          <div className="page-hero-actions">
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleResetAll}>
+              {t('Upload New Document')}
+            </button>
+          </div>
         )}
       </div>
+
 
       {/* Error Alert */}
       {error && (
