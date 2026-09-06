@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from 'react-i18next'
@@ -12,7 +12,8 @@ import {
   UserCircle, 
   LogOut,
   Menu,
-  ChevronLeft
+  ChevronLeft,
+  Award
 } from 'lucide-react'
 
 export default function Layout() {
@@ -119,7 +120,7 @@ export default function Layout() {
 
         {user && (
           <div className="sidebar-footer">
-            <div className="user-profile">
+            <Link to="/profile" className="user-profile user-profile-link" title={t('nav.profile')}>
               <div className="user-avatar">
                 {profile?.name ? profile.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
               </div>
@@ -129,7 +130,7 @@ export default function Layout() {
                   {profile?.employee_id && <span className="user-badge">{profile.employee_id}</span>}
                 </div>
               )}
-            </div>
+            </Link>
             {isSidebarOpen && (
               <button type="button" className="btn btn-logout-sidebar" onClick={handleLogout} title={t('nav.logout')}>
                 <LogOut size={16} /> {t('nav.logout')}
@@ -145,8 +146,14 @@ export default function Layout() {
       </aside>
 
       <div className="app-content-wrapper">
-        <header className="desktop-top-header" style={{ padding: '12px 24px', display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <LanguageSelector />
+        <header className="desktop-top-header">
+          <div className="gov-topbar-brand">
+            <span className="gov-pill">GOVERNMENT OF INDIA</span>
+            <span className="gov-ministry">Ministry of Statistics and Programme Implementation</span>
+          </div>
+          <div className="desktop-header-right">
+            <LanguageSelector />
+          </div>
         </header>
         <main className="app-main">
           <Outlet />

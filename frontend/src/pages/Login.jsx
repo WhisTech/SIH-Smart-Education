@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../components/LanguageSelector'
+import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -53,7 +54,7 @@ export default function Login() {
       if (signInError) {
         const msg = signInError.message || ''
         if (msg.toLowerCase().includes('invalid login credentials') || msg.toLowerCase().includes('invalid_credentials')) {
-          setError(t('system.error') + ': Invalid email or password.') // fallback logic since exact string wasn't fully extracted
+          setError(t('system.error') + ': Invalid email or password.')
         } else if (msg.toLowerCase().includes('email not confirmed')) {
           setError(t('system.error') + ': Please confirm your email.')
         } else {
@@ -82,7 +83,7 @@ export default function Login() {
       {/* LEFT HERO & BRANDING PANEL */}
       <div className="auth-left-panel">
         <div className="auth-brand-badge">
-          {t('auth.brand_badge')}
+          🏛️ {t('auth.brand_badge')}
         </div>
         
         <h1>{t('auth.brand_title')}</h1>
@@ -150,8 +151,8 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label htmlFor="email" style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block' }}>
-                {t('auth.email_label')}
+              <label htmlFor="email" style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Mail size={15} /> {t('auth.email_label')}
               </label>
               <input
                 id="email"
@@ -161,13 +162,13 @@ export default function Login() {
                 placeholder={t('auth.email_placeholder')}
                 autoComplete="email"
                 disabled={loading}
-                style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                className="auth-input-field"
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: '24px' }}>
-              <label htmlFor="password" style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block' }}>
-                {t('auth.password_label')}
+              <label htmlFor="password" style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Lock size={15} /> {t('auth.password_label')}
               </label>
               <div className="password-field">
                 <input
@@ -178,7 +179,7 @@ export default function Login() {
                   placeholder={t('auth.password_placeholder')}
                   autoComplete="current-password"
                   disabled={loading}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                  className="auth-input-field"
                 />
                 <button
                   type="button"
@@ -186,18 +187,21 @@ export default function Login() {
                   onClick={() => setShowPassword((s) => !s)}
                   aria-label={showPassword ? t('auth.hide_password') : t('auth.show_password')}
                 >
-                  {showPassword ? t('auth.hide_password') : t('auth.show_password')}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             <button
               type="submit"
-              className="btn btn-primary btn-block btn-lg"
+              className="auth-submit-btn"
               disabled={loading}
-              style={{ background: '#0f2338', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', width: '100%', cursor: 'pointer' }}
             >
-              {loading ? t('auth.signing_in') : t('auth.sign_in_btn')}
+              {loading ? t('auth.signing_in') : (
+                <>
+                  {t('auth.sign_in_btn')} <ArrowRight size={18} />
+                </>
+              )}
             </button>
           </form>
 

@@ -4,6 +4,17 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchDesignations } from '../lib/referenceData'
 import { useTranslation } from 'react-i18next'
+import FloatingXp from '../components/FloatingXp'
+import { 
+  BookOpen, 
+  ExternalLink, 
+  Filter, 
+  GraduationCap, 
+  RefreshCw, 
+  Search, 
+  Sparkles, 
+  Target 
+} from 'lucide-react'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
@@ -13,6 +24,8 @@ export default function IgotDashboard() {
 
   const [designations, setDesignations] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeXpCourseId, setActiveXpCourseId] = useState(null)
+
   const [filterDesignationOnly, setFilterDesignationOnly] = useState(false)
 
   // Skill Gaps & Personalized Recommendations State
@@ -44,7 +57,6 @@ export default function IgotDashboard() {
     const loadCourses = async () => {
       setCoursesLoading(true)
       try {
-        // Fetch all courses with their skill names
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
           .select(`*, skills ( name )`)
@@ -61,7 +73,7 @@ export default function IgotDashboard() {
           description: c.description || '',
           url: c.external_url || 'https://igotkarmayogi.gov.in/',
           skill_id: c.skill_id,
-          skills: [c.skills?.name || 'Skill']
+          skills: [c.skills?.name || 'Statistical Competency']
         }))
 
         if (isMounted) setCatalogCourses(mappedCourses)
@@ -134,7 +146,7 @@ export default function IgotDashboard() {
 
   // Resolve employee's designation name
   const employeeDesignationName = useMemo(() => {
-    if (!profile?.designation_id) return 'Programmer'
+    if (!profile?.designation_id) return 'Official Statistical Cadre'
     const match = designations.find((d) => d.id === profile.designation_id)
     return match ? match.name : profile.designation_id
   }, [profile, designations])
@@ -145,7 +157,6 @@ export default function IgotDashboard() {
 
     return catalogCourses.filter((course) => {
       if (filterDesignationOnly) {
-        // If filter is active, only show courses that map to skills required by the user's designation
         if (!requiredSkillIds.includes(course.skill_id)) {
           return false
         }
@@ -163,213 +174,210 @@ export default function IgotDashboard() {
 
   return (
     <div className="igot-dashboard-page">
-      {/* Header Banner */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">{t('igot.title')}</h1>
-          <p className="page-subtitle">
+      {/* Page Hero Header */}
+      <div className="page-hero-header">
+        <div className="page-hero-content">
+          <span className="page-hero-badge">🏛️ Mission Karmayogi Integration</span>
+          <h1 className="page-hero-title">{t('igot.title')}</h1>
+          <p className="page-hero-subtitle">
             {t('igot.subtitle')}
           </p>
         </div>
-        <div className="header-actions">
+        <div className="page-hero-actions">
           <Link to="/assessment" className="btn btn-outline btn-sm">
             {t('dashboard.start_assessment')}
+          </Link>
+          <Link to="/reassessment" className="btn btn-primary btn-sm">
+            <RefreshCw size={15} /> Reassessment
           </Link>
         </div>
       </div>
 
-      {/* Designation Banner */}
-      <div className="card desig-banner-card">
-        <div className="banner-desig-info">
-          <span className="banner-label">{t('profile.designation')}</span>
-          <h2 className="banner-desig-title">
-            <span className="desig-icon">💼</span> {employeeDesignationName}
-          </h2>
-          <p className="banner-desig-desc">
-            Showing continuous learning modules on <strong>iGOT Karmayogi</strong> curated for{' '}
-            <strong>{employeeDesignationName}</strong> professionals in official statistics.
-          </p>
-        </div>
+      {/* Cadre Alignment Banner */}
+      <div className="card" style={{ padding: '20px 24px', marginBottom: '24px', borderLeft: '4px solid #0284c7' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.4px' }}>
+              Target Cadre Role
+            </span>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '2px 0 4px' }}>
+              💼 {employeeDesignationName}
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>
+              Curated modules to satisfy MoSPI designation competencies and close identified deltas.
+            </p>
+          </div>
 
-        <div className="banner-filter-toggle">
-          <label className="checkbox-label filter-checkbox">
-            <input
-              type="checkbox"
-              checked={filterDesignationOnly}
-              onChange={(e) => setFilterDesignationOnly(e.target.checked)}
-            />
-            Show courses for my designation only ({employeeDesignationName})
-          </label>
+          <div>
+            <label className="checkbox-label" style={{ cursor: 'pointer', background: '#f8fafc', padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+              <input
+                type="checkbox"
+                checked={filterDesignationOnly}
+                onChange={(e) => setFilterDesignationOnly(e.target.checked)}
+              />
+              Show courses for my designation only
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* FEATURE: PERSONALIZED RECOMMENDATIONS BASED ON SKILL-GAP ANALYSIS */}
-      <div className="card personalized-recs-card">
-        <div className="section-title-sm">
-          <h2 className="card-section-title">⚡ {t('result.course_recs')}</h2>
+      {/* Personalized Recommendations Section */}
+      <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+        <div className="card-header-clean">
+          <div className="header-title-group">
+            <span className="section-pill">AI Curated Pathways</span>
+            <h2 className="section-heading">⚡ {t('result.course_recs')}</h2>
+          </div>
           <span className="tag tag-ai">Assessed Skill-Gap Analysis</span>
         </div>
 
         {recsLoading ? (
           <p className="loading-text">{t('system.loading')}</p>
         ) : recommendations.length === 0 ? (
-          <div className="empty-recs-notice">
+          <div className="empty-assessment-notice">
             <p>No skill-gap recommendations generated yet.</p>
             <p className="muted-sm">
               Complete an AI Competency Assessment to compare your proficiency against designation requirements and receive tailored iGOT course recommendations.
             </p>
-            <Link to="/assessment" className="btn btn-primary btn-sm">
+            <Link to="/assessment" className="btn btn-primary btn-sm" style={{ marginTop: '10px' }}>
               Start Assessment to Generate Recommendations
             </Link>
           </div>
         ) : (
-          <div className="recs-content-wrapper">
-            {/* Skill Gaps Priority Summary */}
-            <div className="gaps-summary-bar">
-              <span className="summary-title">Assessed Skill Gaps:</span>
-              <span className="gap-badge badge-high">⚡ {gapSummary.high} High Priority</span>
-              <span className="gap-badge badge-medium">⚠️ {gapSummary.medium} Medium Priority</span>
-              <span className="gap-badge badge-low">✓ {gapSummary.low} Low Priority</span>
+          <div>
+            {/* Priority summary pill */}
+            <div className="gaps-summary-mini-pill" style={{ marginBottom: '16px' }}>
+              <span className="gap-tag high">⚡ {gapSummary.high} High Priority</span>
+              <span className="gap-tag medium">⚠️ {gapSummary.medium} Medium Priority</span>
+              <span className="gap-tag low">✓ {gapSummary.low} Low Priority</span>
             </div>
 
             {/* Recommended Courses Grid */}
-            <div className="recommended-courses-grid">
+            <div className="courses-grid-3col">
               {recommendations.map((rec) => (
-                <div key={rec.id} className="card rec-course-card">
-                  <div className="rec-card-header">
-                    <span className={`rec-priority-tag tag-${rec.priority.toLowerCase()}`}>
-                      {rec.priority} Priority Gap
-                    </span>
-                    <span className="rec-skill-tag">{rec.skillName}</span>
+                <div key={rec.id} className="course-card-v2 animate-card" style={{ position: 'relative' }}>
+                  <FloatingXp 
+                    xp={100} 
+                    trigger={activeXpCourseId === rec.id} 
+                    onComplete={() => setActiveXpCourseId(null)} 
+                  />
+
+                  <div>
+                    <div className="course-card-top">
+                      <span className={`gap-priority-pill priority-${rec.priority?.toLowerCase() || 'medium'}`}>
+                        {rec.priority} Priority Gap
+                      </span>
+                      <span className="course-xp-pill animated-pulse">+100 XP</span>
+                    </div>
+
+                    <h3 className="course-title-v2">{rec.title}</h3>
+                    <div className="course-provider-v2">🏫 {rec.provider}</div>
+                    <p className="course-desc-v2">💡 {rec.reason}</p>
+                    
+                    <div style={{ marginTop: '8px' }}>
+                      <span className="course-skill-pill" title="Target Cadre Competency">Competency: {rec.skillName}</span>
+                    </div>
                   </div>
 
-                  <h3 className="rec-course-title">{rec.title}</h3>
-                  <div className="rec-course-provider">🏫 {rec.provider}</div>
-
-                  <p className="rec-reason-text">💡 {rec.reason}</p>
-
-                  <div className="rec-card-footer">
+                  <div style={{ marginTop: '14px' }}>
                     <a
-                      href={rec.externalUrl}
+                      href={rec.externalUrl || 'https://igotkarmayogi.gov.in/'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-primary btn-sm btn-block"
+                      onClick={() => setActiveXpCourseId(rec.id)}
                     >
-                      View Course on iGOT →
+                      Open on iGOT Karmayogi →
                     </a>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Reassessment Banner */}
-            <div style={{ marginTop: '25px', padding: '18px 24px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-               <div>
-                  <strong style={{ color: '#1e3a8a', fontSize: '1rem' }}>🎓 Completed your recommended modules?</strong>
-                  <p style={{ margin: '4px 0 0 0', color: '#475569', fontSize: '0.9rem' }}>
-                     Take an adaptive reassessment to validate your updated competency levels and close your official skill gaps.
-                  </p>
-               </div>
-               <Link to="/reassessment" className="btn btn-primary btn-sm" style={{ fontWeight: '600', padding: '10px 18px' }}>
-                  🎯 {t('reassessment.start_reassessment')} &rarr;
-               </Link>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Catalog Search & Grid */}
-      <div className="card search-courses-card">
-        <div className="search-bar-inner">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            className="course-search-input"
-            placeholder="Search courses by title, skill, provider..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search query"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-        <div className="search-results-meta">
-          Showing <strong>{filteredCourses.length}</strong> of {catalogCourses.length} iGOT Karmayogi catalog courses
-        </div>
+      {/* Catalog Search & Filter Bar */}
+      <div className="courses-catalog-search-bar">
+        <Search size={18} color="#64748b" />
+        <input
+          type="text"
+          className="courses-search-input"
+          placeholder="Search courses by title, domain skill, provider..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            className="search-clear-btn"
+            onClick={() => setSearchQuery('')}
+            aria-label="Clear search"
+          >
+            ✕
+          </button>
+        )}
+        <span style={{ fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
+          <strong>{filteredCourses.length}</strong> modules
+        </span>
       </div>
 
-      {/* Course Cards Grid */}
+      {/* Catalog Courses Grid */}
       {coursesLoading ? (
-        <div className="empty-state">
+        <div className="empty-assessment-notice">
            <p>Loading course catalog...</p>
         </div>
       ) : filteredCourses.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-assessment-notice">
           <span className="brand-emblem large" aria-hidden="true">⚠️</span>
-          <h2>No Matching Courses Found</h2>
-          <p>
-            No iGOT courses matched your filters.
-          </p>
+          <h3>No Matching Courses Found</h3>
+          <p className="muted-sm">No modules matched your current query or cadre filter.</p>
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline btn-sm"
             onClick={() => {
               setSearchQuery('')
               setFilterDesignationOnly(false)
             }}
+            style={{ marginTop: '10px' }}
           >
-            Reset Search &amp; Filters
+            Reset Filters
           </button>
         </div>
       ) : (
-        <div className="igot-courses-grid">
+        <div className="courses-grid-3col">
           {filteredCourses.map((course) => (
-            <div key={course.id} className="card course-card">
-              <div className="course-card-header">
-                <span className="platform-tag">
-                  <span className="platform-icon" aria-hidden="true">🏛️</span> {course.platform}
-                </span>
-                <span className="level-tag">{course.level}</span>
-              </div>
+            <div key={course.id} className="course-card-v2 animate-card" style={{ position: 'relative' }}>
+              <FloatingXp 
+                xp={100} 
+                trigger={activeXpCourseId === course.id} 
+                onComplete={() => setActiveXpCourseId(null)} 
+              />
 
-              <h3 className="course-title">{course.title}</h3>
-
-              <div className="course-provider">
-                <span className="provider-icon" aria-hidden="true">🏫</span> {course.provider}
-              </div>
-
-              <p className="course-desc">{course.description}</p>
-
-              <div className="course-meta-tags">
-                <div className="meta-tag-item">
-                  <span className="meta-lbl">Duration:</span>
-                  <span className="meta-val">{course.duration}</span>
+              <div>
+                <div className="course-card-top">
+                  <span className="course-platform-badge">🏛️ {course.platform}</span>
+                  <span className="course-level-badge">{course.level}</span>
                 </div>
 
-                <div className="meta-tag-item">
-                  <span className="meta-lbl">Relevant Skills:</span>
-                  <div className="skill-chips-row">
-                    {course.skills.map((s, idx) => (
-                      <span key={idx} className="course-skill-chip">{s}</span>
-                    ))}
-                  </div>
+                <h3 className="course-title-v2">{course.title}</h3>
+                <div className="course-provider-v2">🏫 {course.provider}</div>
+                <p className="course-desc-v2">{course.description}</p>
+
+                <div className="course-skills-chips">
+                  {course.skills.map((s, idx) => (
+                    <span key={idx} className="course-skill-pill">{s}</span>
+                  ))}
                 </div>
               </div>
 
-              <div className="course-card-footer">
+              <div>
                 <a
                   href={course.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary btn-block"
-                  title={`Open ${course.title} on iGOT Karmayogi platform`}
+                  className="btn btn-outline btn-sm btn-block"
+                  onClick={() => setActiveXpCourseId(course.id)}
                 >
                   View Course on iGOT →
                 </a>
@@ -378,6 +386,7 @@ export default function IgotDashboard() {
           ))}
         </div>
       )}
+
     </div>
   )
 }
