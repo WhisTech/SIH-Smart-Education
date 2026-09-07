@@ -78,6 +78,7 @@ export default function Profile() {
 
   // Workflow & Achievements
   const [workflowStatus, setWorkflowStatus] = useState(null)
+  const [arenaBadges, setArenaBadges] = useState([])
 
   // Edit mode selected skills (array of UUIDs)
   const [editSkillIds, setEditSkillIds] = useState([])
@@ -234,6 +235,22 @@ export default function Profile() {
             url: c.external_url || 'https://igotkarmayogi.gov.in/',
             skillName: c.skills?.name || 'Statistical Competency'
           })))
+        }
+
+        // Fetch arena badges for this user
+        const { data: arenaBadgesData } = await supabase
+          .from('user_arena_badges')
+          .select('..., arena_badges(*)')
+          .eq('user_id', user.id)
+
+        if (isMounted && arenaBadgesData) {
+           setArenaBadges(arenaBadgesData.map(b => ({
+             id: `arena_badge_${b.arena_badges.id}`,
+             title: b.arena_badges.name,
+             description: b.arena_badges.description,
+             icon: b.arena_badges.icon,
+             earned: true
+           })))
         }
       } catch (err) {
         console.error('Error loading profile assessment/training data:', err)
@@ -911,14 +928,14 @@ export default function Profile() {
               </div>
 
               <div className="dossier-honors-grid">
-                {(workflowStatus?.achievements || [
+                {([...(workflowStatus?.achievements || [
                   { id: 'first_assessment', title: 'First Step', icon: '🎯', description: 'Completed official AI competency assessment', earned: Boolean(latestAssessment) },
                   { id: 'high_scorer', title: 'Merit Holder', icon: '🌟', description: 'Achieved 80% or higher overall score', earned: Boolean(latestAssessment?.overallScore >= 80) },
                   { id: 'perfectionist', title: 'Flawless Section', icon: '🏆', description: 'Scored 100% in at least one statistical domain', earned: false },
                   { id: 'gap_closer', title: 'Active Learner', icon: '📚', description: 'Identified competency benchmarks and enrolled in learning', earned: false },
                   { id: 'reassessment_ready', title: 'Resilient Analyst', icon: '🔄', description: 'Participated in a competency reassessment cycle', earned: Boolean(latestAssessment?.assessment_type === 'reassessment') },
                   { id: 'cycle_master', title: 'Cycle Master', icon: '👑', description: 'Successfully completed the 4-stage MoSPI competency cycle', earned: Boolean(workflowStatus?.workflow?.isCycleFullyCompleted) }
-                ]).map((ach) => (
+                ]), ...arenaBadges]).map((ach) => (
                   <div key={ach.id} className={`dossier-honor-card ${ach.earned ? 'earned' : ''}`}>
                     <div className="dossier-honor-icon" aria-hidden="true">
                       {ach.icon}

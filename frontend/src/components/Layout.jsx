@@ -13,7 +13,9 @@ import {
   LogOut,
   Menu,
   ChevronLeft,
-  Award
+  Award,
+  Swords,
+  Trophy
 } from 'lucide-react'
 
 export default function Layout() {
@@ -102,6 +104,14 @@ export default function Layout() {
               <NavLink to="/research-engine" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <Microscope size={20} />
                 {isSidebarOpen && <span>{t('nav.research_engine')}</span>}
+              </NavLink>
+              <NavLink to="/arena" end className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
+                <Swords size={20} />
+                {isSidebarOpen && <span>Skill Arena</span>}
+              </NavLink>
+              <NavLink to="/arena/leaderboard" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
+                <Trophy size={20} />
+                {isSidebarOpen && <span>Arena Leaderboard</span>}
               </NavLink>
               <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <UserCircle size={20} />

@@ -1,7 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 const { createClient } = require('@supabase/supabase-js')
-require('dotenv').config()
+const path = require('path')
+require('dotenv').config({ path: path.join(__dirname, '.env') })
 
 const { generateQuizQuestions, generateAssessmentAnalysis } = require('./groqClient')
 const { generateMcqsFromPdf } = require('./geminiClient')
@@ -1424,7 +1425,6 @@ app.post('/api/mcq/generate', (req, res, next) => {
    ========================================================================== */
 
 const fs = require('fs');
-const path = require('path');
 const FusionEngine = require('./research/fusionEngine');
 const MetricsEngine = require('./research/metricsEngine');
 
@@ -1709,9 +1709,79 @@ app.post('/api/auth/register-user', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000
+// ==========================================
+// ARENA API ENDPOINTS
+// ==========================================
 
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`)
-})
+app.get('/api/arena/leaderboard', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('arena_profiles')
+      .select('user_id, arena_points, wins, current_streak, best_streak, employee_profiles(name)')
+      .order('arena_points', { ascending: false })
+      .order('wins', { ascending: false })
+      .order('best_streak', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    
+    const ranked = data.map((p, index) => ({
+      userId: p.user_id,
+      name: p.employee_profiles?.name || 'Unknown Officer',
+      points: p.arena_points,
+      wins: p.wins,
+      streak: p.current_streak,
+      bestStreak: p.best_streak,
+      rank: index + 1
+    }));
+    
+    res.json(ranked);
+  } catch (err) {
+    console.error('Leaderboard fetch error:', err);
+    res.status(500).json({ error: 'Failed to load leaderboard' });
+  }
+});
+
+app.get('/api/arena/profile', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: profile, error } = await supabase
+      .from('arena_profiles')
+      .select('arena_points, arena_rating, wins, losses, draws, current_streak, best_streak, total_matches')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+
+    // Fetch badges
+    const { data: userBadges, error: badgeErr } = await supabase
+      .from('user_arena_badges')
+      .select('badge_id, awarded_at, arena_badges(*)')
+      .eq('user_id', userId);
+    
+    if (badgeErr) throw badgeErr;
+
+    res.json({
+      ...profile,
+      badges: userBadges.map(b => b.arena_badges).filter(Boolean)
+    });
+  } catch (err) {
+    console.error('Arena profile error:', err);
+    res.status(500).json({ error: 'Failed to load arena profile' });
+  }
+});
+
+const http = require('http');
+const initArenaSocket = require('./arenaSocket');
+
+const PORT = process.env.PORT || 5000;
+
+const server = http.createServer(app);
+
+// Initialize Arena Socket.IO
+initArenaSocket(server, supabaseUrl, supabaseSecretKey);
+
+server.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
+});
 
