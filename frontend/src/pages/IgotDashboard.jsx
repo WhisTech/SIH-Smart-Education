@@ -177,7 +177,7 @@ export default function IgotDashboard() {
       {/* Page Hero Header */}
       <div className="page-hero-header">
         <div className="page-hero-content">
-          <span className="page-hero-badge">🏛️ Mission Karmayogi Integration</span>
+          <span className="page-hero-badge">{t('igot.karmayogi_badge')}</span>
           <h1 className="page-hero-title">{t('igot.title')}</h1>
           <p className="page-hero-subtitle">
             {t('igot.subtitle')}
@@ -188,7 +188,7 @@ export default function IgotDashboard() {
             {t('dashboard.start_assessment')}
           </Link>
           <Link to="/reassessment" className="btn btn-primary btn-sm">
-            <RefreshCw size={15} /> Reassessment
+            <RefreshCw size={15} /> {t('igot.reassessment_btn')}
           </Link>
         </div>
       </div>
@@ -198,13 +198,13 @@ export default function IgotDashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.4px' }}>
-              Target Cadre Role
+              {t('igot.target_cadre_role')}
             </span>
             <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '2px 0 4px' }}>
               💼 {employeeDesignationName}
             </h2>
             <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>
-              Curated modules to satisfy MoSPI designation competencies and close identified deltas.
+              {t('igot.cadre_curated_desc')}
             </p>
           </div>
 
@@ -215,7 +215,7 @@ export default function IgotDashboard() {
                 checked={filterDesignationOnly}
                 onChange={(e) => setFilterDesignationOnly(e.target.checked)}
               />
-              Show courses for my designation only
+              {t('igot.filter_designation_only')}
             </label>
           </div>
         </div>
@@ -225,31 +225,31 @@ export default function IgotDashboard() {
       <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
         <div className="card-header-clean">
           <div className="header-title-group">
-            <span className="section-pill">AI Curated Pathways</span>
+            <span className="section-pill">{t('igot.curated_pathways')}</span>
             <h2 className="section-heading">⚡ {t('result.course_recs')}</h2>
           </div>
-          <span className="tag tag-ai">Assessed Skill-Gap Analysis</span>
+          <span className="tag tag-ai">{t('igot.assessed_gap_tag')}</span>
         </div>
 
         {recsLoading ? (
           <p className="loading-text">{t('system.loading')}</p>
         ) : recommendations.length === 0 ? (
           <div className="empty-assessment-notice">
-            <p>No skill-gap recommendations generated yet.</p>
+            <p>{t('igot.no_recs_title')}</p>
             <p className="muted-sm">
-              Complete an AI Competency Assessment to compare your proficiency against designation requirements and receive tailored iGOT course recommendations.
+              {t('igot.no_recs_desc')}
             </p>
             <Link to="/assessment" className="btn btn-primary btn-sm" style={{ marginTop: '10px' }}>
-              Start Assessment to Generate Recommendations
+              {t('igot.start_assess_to_recs')}
             </Link>
           </div>
         ) : (
           <div>
             {/* Priority summary pill */}
             <div className="gaps-summary-mini-pill" style={{ marginBottom: '16px' }}>
-              <span className="gap-tag high">⚡ {gapSummary.high} High Priority</span>
-              <span className="gap-tag medium">⚠️ {gapSummary.medium} Medium Priority</span>
-              <span className="gap-tag low">✓ {gapSummary.low} Low Priority</span>
+              <span className="gap-tag high">⚡ {gapSummary.high} {t('igot.high_priority_gap')}</span>
+              <span className="gap-tag medium">⚠️ {gapSummary.medium} {t('igot.medium_priority_gap')}</span>
+              <span className="gap-tag low">✓ {gapSummary.low} {t('igot.low_priority_gap')}</span>
             </div>
 
             {/* Recommended Courses Grid */}
@@ -265,7 +265,7 @@ export default function IgotDashboard() {
                   <div>
                     <div className="course-card-top">
                       <span className={`gap-priority-pill priority-${rec.priority?.toLowerCase() || 'medium'}`}>
-                        {rec.priority} Priority Gap
+                        {rec.priority === 'High' ? t('igot.high_priority_gap') : rec.priority === 'Low' ? t('igot.low_priority_gap') : t('igot.medium_priority_gap')}
                       </span>
                       <span className="course-xp-pill animated-pulse">+100 XP</span>
                     </div>
@@ -275,7 +275,9 @@ export default function IgotDashboard() {
                     <p className="course-desc-v2">💡 {rec.reason}</p>
                     
                     <div style={{ marginTop: '8px' }}>
-                      <span className="course-skill-pill" title="Target Cadre Competency">Competency: {rec.skillName}</span>
+                      <span className="course-skill-pill" title="Target Cadre Competency">
+                        {t('igot.competency_prefix', { skill: rec.skillName })}
+                      </span>
                     </div>
                   </div>
 
@@ -287,7 +289,7 @@ export default function IgotDashboard() {
                       className="btn btn-primary btn-sm btn-block"
                       onClick={() => setActiveXpCourseId(rec.id)}
                     >
-                      Open on iGOT Karmayogi →
+                      {t('igot.open_on_igot')}
                     </a>
                   </div>
                 </div>
@@ -303,7 +305,7 @@ export default function IgotDashboard() {
         <input
           type="text"
           className="courses-search-input"
-          placeholder="Search courses by title, domain skill, provider..."
+          placeholder={t('igot.search_catalog_placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -318,20 +320,20 @@ export default function IgotDashboard() {
           </button>
         )}
         <span style={{ fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
-          <strong>{filteredCourses.length}</strong> modules
+          <strong>{filteredCourses.length}</strong> {t('igot.modules_count')}
         </span>
       </div>
 
       {/* Catalog Courses Grid */}
       {coursesLoading ? (
         <div className="empty-assessment-notice">
-           <p>Loading course catalog...</p>
+           <p>{t('igot.loading_catalog')}</p>
         </div>
       ) : filteredCourses.length === 0 ? (
         <div className="empty-assessment-notice">
           <span className="brand-emblem large" aria-hidden="true">⚠️</span>
-          <h3>No Matching Courses Found</h3>
-          <p className="muted-sm">No modules matched your current query or cadre filter.</p>
+          <h3>{t('igot.no_matching_title')}</h3>
+          <p className="muted-sm">{t('igot.no_matching_desc')}</p>
           <button
             type="button"
             className="btn btn-outline btn-sm"
@@ -341,7 +343,7 @@ export default function IgotDashboard() {
             }}
             style={{ marginTop: '10px' }}
           >
-            Reset Filters
+            {t('igot.reset_filters')}
           </button>
         </div>
       ) : (
@@ -379,7 +381,7 @@ export default function IgotDashboard() {
                   className="btn btn-outline btn-sm btn-block"
                   onClick={() => setActiveXpCourseId(course.id)}
                 >
-                  View Course on iGOT →
+                  {t('igot.view_on_igot')}
                 </a>
               </div>
             </div>

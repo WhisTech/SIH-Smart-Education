@@ -452,10 +452,10 @@ export default function Profile() {
       <div className="dossier-crest-bar">
         <div className="dossier-crest-title">
           <span>🏛️</span>
-          <span>Government of India · Ministry of Statistics and Programme Implementation</span>
+          <span>{t('profile.crest_title')}</span>
         </div>
         <div className="dossier-crest-tag">
-          Official Dossier · ISS Cadre
+          {t('profile.crest_tag')}
         </div>
       </div>
 
@@ -478,7 +478,7 @@ export default function Profile() {
             <div className="dossier-info-col">
               <div className="dossier-cadre-badge">
                 <ShieldCheck size={14} color="#0b1f3a" />
-                <span>Indian Statistical Service (ISS) · Regular Cadre</span>
+                <span>{t('profile.iss_cadre_badge')}</span>
               </div>
               
               <h1 className="dossier-officer-name">
@@ -489,13 +489,13 @@ export default function Profile() {
                 <span>{designationName}</span>
                 <span className="dossier-dept-chip">
                   <Building2 size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-2px' }} />
-                  {profile?.department || 'National Statistical Office'}
+                  {profile?.department || t('National Statistical Office')}
                 </span>
               </div>
 
               <div className="dossier-meta-row">
                 <div className="dossier-meta-item">
-                  <span>OID / ID:</span>
+                  <span>{t('OID / ID:')}</span>
                   <code>{profile?.employee_id || '921007'}</code>
                 </div>
                 <div className="dossier-meta-item">
@@ -504,7 +504,7 @@ export default function Profile() {
                 </div>
                 <div className="dossier-meta-item">
                   <Calendar size={13} />
-                  <span>Experience: <strong>{profile?.experience_years ?? 5} Years</strong></span>
+                  <span>{t('dashboard.experience')}: <strong>{profile?.experience_years ?? 5} {t('dashboard.years')}</strong></span>
                 </div>
               </div>
             </div>
@@ -517,7 +517,7 @@ export default function Profile() {
                     type="button"
                     className="btn btn-outline btn-sm"
                     onClick={handlePrint}
-                    title="Print / Save Dossier"
+                    title={t('Print / Save Dossier')}
                   >
                     <Printer size={15} /> {t('Print Dossier')}
                   </button>
@@ -536,22 +536,22 @@ export default function Profile() {
           {/* Quick Stats Strip */}
           <div className="dossier-stats-strip">
             <div className="dossier-stat-box">
-              <span className="dossier-stat-label">Verified Competencies</span>
-              <span className="dossier-stat-val highlight">{employeeSkills.length} Skills</span>
+              <span className="dossier-stat-label">{t('profile.verified_comp_label')}</span>
+              <span className="dossier-stat-val highlight">{employeeSkills.length} {t('skills')}</span>
             </div>
             <div className="dossier-stat-box">
-              <span className="dossier-stat-label">AI Assessments</span>
-              <span className="dossier-stat-val">{historyList.length || (latestAssessment ? 1 : 0)} Completed</span>
+              <span className="dossier-stat-label">{t('profile.ai_assess_label')}</span>
+              <span className="dossier-stat-val">{historyList.length || (latestAssessment ? 1 : 0)} {t('Completed')}</span>
             </div>
             <div className="dossier-stat-box">
-              <span className="dossier-stat-label">Latest Benchmark Score</span>
+              <span className="dossier-stat-label">{t('profile.latest_score_label')}</span>
               <span className="dossier-stat-val">
-                {latestAssessment ? `${Math.round(latestAssessment.overallScore)}%` : 'Pending'}
+                {latestAssessment ? `${Math.round(latestAssessment.overallScore)}%` : t('dashboard.pending')}
               </span>
             </div>
             <div className="dossier-stat-box">
-              <span className="dossier-stat-label">Cadre Record Status</span>
-              <span className="dossier-stat-val" style={{ color: '#15803d' }}>● Active / Verified</span>
+              <span className="dossier-stat-label">{t('profile.cadre_status_label')}</span>
+              <span className="dossier-stat-val" style={{ color: '#15803d' }}>{t('profile.active_verified')}</span>
             </div>
           </div>
         </div>
@@ -596,21 +596,21 @@ export default function Profile() {
               className={`dossier-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
               onClick={() => setActiveTab('overview')}
             >
-              <FileText size={15} /> All Particulars & Overview
+              <FileText size={15} /> {t('profile.tab_overview')}
             </button>
             <button 
               type="button"
               className={`dossier-tab-btn ${activeTab === 'particulars' ? 'active' : ''}`}
               onClick={() => setActiveTab('particulars')}
             >
-              <Building2 size={15} /> Official Profile & Service
+              <Building2 size={15} /> {t('profile.tab_service')}
             </button>
             <button 
               type="button"
               className={`dossier-tab-btn ${activeTab === 'skills' ? 'active' : ''}`}
               onClick={() => setActiveTab('skills')}
             >
-              <Layers size={15} /> Verified Competencies
+              <Layers size={15} /> {t('profile.tab_skills')}
               <span className="dossier-tab-count">{employeeSkills.length}</span>
             </button>
             <button 
@@ -618,7 +618,7 @@ export default function Profile() {
               className={`dossier-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveTab('history')}
             >
-              <History size={15} /> Assessment History
+              <History size={15} /> {t('profile.tab_history')}
               <span className="dossier-tab-count">{historyList.length || (latestAssessment ? 1 : 0)}</span>
             </button>
             <button 
@@ -626,14 +626,14 @@ export default function Profile() {
               className={`dossier-tab-btn ${activeTab === 'training' ? 'active' : ''}`}
               onClick={() => setActiveTab('training')}
             >
-              <GraduationCap size={15} /> Learning & Training Record
+              <GraduationCap size={15} /> {t('profile.tab_training')}
             </button>
             <button 
               type="button"
               className={`dossier-tab-btn ${activeTab === 'honors' ? 'active' : ''}`}
               onClick={() => setActiveTab('honors')}
             >
-              <Award size={15} /> Achievements & Badges
+              <Award size={15} /> {t('profile.tab_honors')}
             </button>
           </div>
 
@@ -643,56 +643,56 @@ export default function Profile() {
               <div className="dossier-card-header">
                 <h2 className="dossier-card-title">
                   <Building2 size={20} color="#0b1f3a" />
-                  Official Service Particulars & Placement Record
+                  {t('profile.service_particulars_title')}
                 </h2>
                 <span className="dossier-stamp">
-                  <CheckCircle2 size={13} /> Official Record
+                  <CheckCircle2 size={13} /> {t('Official Record')}
                 </span>
               </div>
 
               <div className="dossier-particulars-grid">
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Full Officer Name</span>
+                  <span className="dossier-particular-label">{t('profile.full_officer_name')}</span>
                   <span className="dossier-particular-val">{profile.name || '—'}</span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Government Officer ID (OID)</span>
+                  <span className="dossier-particular-label">{t('profile.gov_oid')}</span>
                   <span className="dossier-particular-val">
                     <code>{profile.employee_id || '921007'}</code>
                   </span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Designation & Cadre</span>
+                  <span className="dossier-particular-label">{t('profile.desig_cadre')}</span>
                   <span className="dossier-particular-val">{designationName}</span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Ministry / Department</span>
-                  <span className="dossier-particular-val">Ministry of Statistics & Programme Implementation</span>
+                  <span className="dossier-particular-label">{t('profile.ministry_dept')}</span>
+                  <span className="dossier-particular-val">{t('nav.mospi_full')}</span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Division / Office</span>
-                  <span className="dossier-particular-val">{profile.department || 'National Statistical Office'}</span>
+                  <span className="dossier-particular-label">{t('profile.division_office')}</span>
+                  <span className="dossier-particular-val">{profile.department || t('National Statistical Office')}</span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Total Statistical Service</span>
+                  <span className="dossier-particular-label">{t('profile.total_service')}</span>
                   <span className="dossier-particular-val">
-                    {profile.experience_years != null ? `${profile.experience_years} Years Active Service` : '—'}
+                    {profile.experience_years != null ? `${profile.experience_years} ${t('Years Active Service')}` : '—'}
                   </span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Official Registered Email</span>
+                  <span className="dossier-particular-label">{t('profile.registered_email')}</span>
                   <span className="dossier-particular-val">{user?.email || '—'}</span>
                 </div>
 
                 <div className="dossier-particular-item">
-                  <span className="dossier-particular-label">Cadre Batch / Classification</span>
-                  <span className="dossier-particular-val">ISS Regular Officer · MoSPI Central Directory</span>
+                  <span className="dossier-particular-label">{t('profile.cadre_batch')}</span>
+                  <span className="dossier-particular-val">{t('ISS Regular Officer · MoSPI Central Directory')}</span>
                 </div>
               </div>
             </div>
@@ -704,18 +704,18 @@ export default function Profile() {
               <div className="dossier-card-header">
                 <h2 className="dossier-card-title">
                   <Layers size={20} color="#0b1f3a" />
-                  Verified Competencies & Statistical Domain Portfolio
+                  {t('profile.skills_portfolio_title')}
                 </h2>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span className="dossier-stamp">
-                    {employeeSkills.length} Verified
+                    {employeeSkills.length} {t('Verified')}
                   </span>
                   <button 
                     type="button"
                     className="btn btn-outline btn-sm"
                     onClick={startEditing}
                   >
-                    + Manage Skills
+                    {t('profile.manage_skills')}
                   </button>
                 </div>
               </div>
@@ -731,7 +731,7 @@ export default function Profile() {
                     onClick={startEditing}
                     style={{ marginTop: '10px' }}
                   >
-                    + Map Your Current Skills
+                    {t('+ Map Your Current Skills')}
                   </button>
                 </div>
               ) : (
@@ -765,10 +765,10 @@ export default function Profile() {
               <div className="dossier-card-header">
                 <h2 className="dossier-card-title">
                   <History size={20} color="#0b1f3a" />
-                  AI Competency Assessment & Evaluation History
+                  {t('profile.eval_history_title')}
                 </h2>
                 <Link to="/assessment" className="btn btn-primary btn-sm">
-                  + Launch New Assessment
+                  {t('profile.launch_new_assess')}
                 </Link>
               </div>
 
@@ -778,7 +778,7 @@ export default function Profile() {
                 <div className="empty-assessment-notice">
                   <p>{t('No evaluation records logged yet.')}</p>
                   <Link to="/assessment" className="btn btn-primary btn-sm" style={{ marginTop: '10px' }}>
-                    Take Official AI Competency Assessment
+                    {t('Take Official AI Competency Assessment')}
                   </Link>
                 </div>
               ) : (
@@ -797,7 +797,7 @@ export default function Profile() {
                   }}>
                     <div>
                       <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>
-                        Latest Official Score
+                        {t('profile.latest_official_score')}
                       </span>
                       <div style={{ fontSize: '24px', fontWeight: '800', color: '#138808' }}>
                         {Math.round(latestAssessment.overallScore)}%
@@ -805,17 +805,17 @@ export default function Profile() {
                     </div>
                     <div>
                       <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>
-                        Accuracy Benchmark
+                        {t('profile.accuracy_benchmark')}
                       </span>
                       <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
-                        {latestAssessment.correctAnswers} / {latestAssessment.totalQuestions} Questions Correct
+                        {latestAssessment.correctAnswers} / {latestAssessment.totalQuestions} {t('Questions Correct')}
                       </div>
                     </div>
                     <Link
                       to={`/assessment/result/${latestAssessment.assessmentId}`}
                       className="btn btn-outline btn-sm"
                     >
-                      View Detailed Audit ➔
+                      {t('profile.view_detailed_audit')}
                     </Link>
                   </div>
 
@@ -824,12 +824,12 @@ export default function Profile() {
                       <table className="dossier-audit-table">
                         <thead>
                           <tr>
-                            <th>Evaluation Date</th>
-                            <th>Assessment Type</th>
-                            <th>Questions Correct</th>
-                            <th>Competency Score</th>
-                            <th>Audit Status</th>
-                            <th>Action</th>
+                            <th>{t('profile.eval_date')}</th>
+                            <th>{t('profile.assess_type')}</th>
+                            <th>{t('Questions Correct')}</th>
+                            <th>{t('profile.comp_score')}</th>
+                            <th>{t('profile.audit_status')}</th>
+                            <th>{t('Action')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -838,7 +838,7 @@ export default function Profile() {
                               <td>{new Date(item.completedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                               <td>
                                 <span style={{ textTransform: 'capitalize', fontWeight: '600' }}>
-                                  {item.assessment_type || 'Official Baseline'}
+                                  {item.assessment_type || t('Official Baseline')}
                                 </span>
                               </td>
                               <td>{item.correctAnswers} / {item.totalQuestions}</td>
@@ -846,14 +846,14 @@ export default function Profile() {
                                 <strong style={{ color: '#138808' }}>{Math.round(item.scorePercentage)}%</strong>
                               </td>
                               <td>
-                                <span className="tag tag-success">Verified</span>
+                                <span className="tag tag-success">{t('Verified')}</span>
                               </td>
                               <td>
                                 <Link
                                   to={`/assessment/result/${item.assessmentId}`}
                                   className="link-sm"
                                 >
-                                  View Audit
+                                  {t('profile.view_audit')}
                                 </Link>
                               </td>
                             </tr>
@@ -873,10 +873,10 @@ export default function Profile() {
               <div className="dossier-card-header">
                 <h2 className="dossier-card-title">
                   <GraduationCap size={20} color="#0b1f3a" />
-                  Official Learning & Training Records (iGOT Karmayogi / NSSTA)
+                  {t('profile.training_title')}
                 </h2>
                 <Link to="/igot-courses" className="btn btn-outline btn-sm">
-                  View Full iGOT Catalog ➔
+                  {t('profile.view_igot_catalog')}
                 </Link>
               </div>
 
@@ -892,11 +892,11 @@ export default function Profile() {
                         </span>
                         <h4 className="dossier-course-title">{c.title}</h4>
                         <span style={{ fontSize: '12px', color: '#64748b' }}>
-                          Target Skill: <strong>{c.skillName}</strong>
+                          {t('profile.target_skill')} <strong>{c.skillName}</strong>
                         </span>
                       </div>
                       <div className="dossier-course-meta">
-                        <span>Provider: <strong>{c.provider}</strong></span>
+                        <span>{t('igot.provider')}: <strong>{c.provider}</strong></span>
                         <a
                           href={c.url}
                           target="_blank"
@@ -904,7 +904,7 @@ export default function Profile() {
                           className="btn btn-outline btn-sm"
                           style={{ padding: '4px 10px', fontSize: '12px' }}
                         >
-                          Launch <ExternalLink size={12} style={{ display: 'inline', marginLeft: '3px' }} />
+                          {t('profile.launch_course')} <ExternalLink size={12} style={{ display: 'inline', marginLeft: '3px' }} />
                         </a>
                       </div>
                     </div>
@@ -920,10 +920,10 @@ export default function Profile() {
               <div className="dossier-card-header">
                 <h2 className="dossier-card-title">
                   <Award size={20} color="#0b1f3a" />
-                  Official Competency Honors & Achievement Badges
+                  {t('profile.honors_title')}
                 </h2>
                 <span className="dossier-stamp">
-                  MoSPI Skill Intelligence Commendations
+                  {t('profile.honors_stamp')}
                 </span>
               </div>
 
@@ -944,7 +944,7 @@ export default function Profile() {
                       <h4 className="dossier-honor-title">{ach.title}</h4>
                       <p className="dossier-honor-desc">{ach.description}</p>
                       <span className={`dossier-honor-status ${ach.earned ? 'earned' : 'locked'}`}>
-                        {ach.earned ? '✓ Awarded' : '○ In Progress'}
+                        {ach.earned ? t('profile.awarded') : t('profile.in_progress')}
                       </span>
                     </div>
                   </div>

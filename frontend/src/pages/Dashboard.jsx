@@ -207,7 +207,7 @@ export default function Dashboard() {
             style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
           >
             <div className="hero-tag-row">
-              <span className="gov-cadre-tag">🏛️ MoSPI · Indian Statistical Service</span>
+              <span className="gov-cadre-tag">{t('dashboard.cadre_tag')}</span>
               {profile?.employee_id && (
                 <span className="hero-emp-id">OID: <code>{profile.employee_id}</code></span>
               )}
@@ -248,13 +248,12 @@ export default function Dashboard() {
       {!profile ? (
         <div className="empty-state">
           <span className="brand-emblem large">⚠️</span>
-          <h2>Employee Profile Not Found</h2>
+          <h2>{t('dashboard.profile_not_found')}</h2>
           <p>
-            We could not find an employee profile linked to your authenticated account. Please contact
-            your administrator or set up your profile details.
+            {t('dashboard.profile_not_found_desc')}
           </p>
           <Link to="/profile" className="btn btn-primary">
-            Set Up Profile
+            {t('dashboard.setup_profile')}
           </Link>
         </div>
       ) : (
@@ -286,9 +285,9 @@ export default function Dashboard() {
                 <Award size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-label">Competency Score</span>
+                <span className="stat-label">{t('dashboard.competency_score')}</span>
                 <span className="stat-value" style={{ color: latestAssessment ? '#15803d' : '#0f172a' }}>
-                  {latestAssessment ? `${animatedScore}%` : 'Pending'}
+                  {latestAssessment ? `${animatedScore}%` : t('dashboard.pending')}
                 </span>
               </div>
             </div>
@@ -298,9 +297,9 @@ export default function Dashboard() {
                 <TrendingUp size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-label">Experience</span>
+                <span className="stat-label">{t('dashboard.experience')}</span>
                 <span className="stat-value">
-                  {profile.experience_years != null ? `${profile.experience_years} Years` : '—'}
+                  {profile.experience_years != null ? `${profile.experience_years} ${t('dashboard.years')}` : '—'}
                 </span>
               </div>
             </div>
@@ -312,10 +311,10 @@ export default function Dashboard() {
             <div className="card learning-journey-card animate-card">
               <div className="card-header-clean">
                 <div className="header-title-group">
-                  <span className="section-pill">Active Competency Cycle</span>
-                  <h3 className="section-heading">Officer Skill Intelligence Cycle</h3>
+                  <span className="section-pill">{t('dashboard.active_cycle')}</span>
+                  <h3 className="section-heading">{t('dashboard.cycle_heading')}</h3>
                 </div>
-                <span className="cycle-subtext">iGOT Karmayogi &amp; MoSPI Cadre Alignment</span>
+                <span className="cycle-subtext">{t('dashboard.cycle_subtext')}</span>
               </div>
 
               <div className="journey-track-grid">
@@ -329,7 +328,7 @@ export default function Dashboard() {
                     {s1Done ? <CheckCircle2 size={18} /> : '1'}
                   </div>
                   <div className="step-content">
-                    <strong className="step-title">1. Profile &amp; Skills</strong>
+                    <strong className="step-title">{t('dashboard.stage_1_title')}</strong>
                     <span className="step-desc">
                       {workflow?.stage1_profile?.description || 'Designation & competencies'}
                     </span>
@@ -348,7 +347,7 @@ export default function Dashboard() {
                     {s2Done ? <CheckCircle2 size={18} /> : '2'}
                   </div>
                   <div className="step-content">
-                    <strong className="step-title">2. AI Assessment</strong>
+                    <strong className="step-title">{t('dashboard.stage_2_title')}</strong>
                     <span className="step-desc">
                       {workflow?.stage2_assessment?.description || 'Domain competency evaluation'}
                     </span>
@@ -367,7 +366,7 @@ export default function Dashboard() {
                     {s3Done ? <CheckCircle2 size={18} /> : '3'}
                   </div>
                   <div className="step-content">
-                    <strong className="step-title">3. Skill Gap Analysis</strong>
+                    <strong className="step-title">{t('dashboard.stage_3_title')}</strong>
                     <span className="step-desc">
                       {workflow?.stage3_skillGaps?.description || 'Benchmark delta identification'}
                     </span>
@@ -386,7 +385,7 @@ export default function Dashboard() {
                     {s4Done ? <CheckCircle2 size={18} /> : '4'}
                   </div>
                   <div className="step-content">
-                    <strong className="step-title">4. iGOT Reassessment</strong>
+                    <strong className="step-title">{t('dashboard.stage_4_title')}</strong>
                     <span className="step-desc">
                       {workflow?.stage4_reassessment?.description || 'Targeted mastery & promotion'}
                     </span>
@@ -401,9 +400,9 @@ export default function Dashboard() {
             <div className="card-header-clean">
               <div className="header-title-group">
                 <span className={`section-pill ${isCycleComplete ? 'badge-green' : ''}`}>
-                  {isCycleComplete ? '✓ Competency Cycle Completed' : 'Competency Evaluation'}
+                  {isCycleComplete ? t('dashboard.cycle_completed') : t('dashboard.active_cycle')}
                 </span>
-                <h3 className="section-heading">AI Assessment Overview &amp; Proficiency</h3>
+                <h3 className="section-heading">{t('dashboard.evaluation_title')}</h3>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <Link to="/assessment" className="btn btn-primary btn-sm">
@@ -411,7 +410,7 @@ export default function Dashboard() {
                 </Link>
                 {latestAssessment && (
                   <Link to="/reassessment" className="btn btn-outline btn-sm">
-                    <RefreshCw size={14} /> Reassessment
+                    <RefreshCw size={14} /> {t('reassessment.title')}
                   </Link>
                 )}
               </div>
@@ -424,9 +423,9 @@ export default function Dashboard() {
             ) : !latestAssessment ? (
               <div className="empty-assessment-notice">
                 <div className="empty-notice-icon">🎯</div>
-                <h4>No assessment completed yet</h4>
+                <h4>{t('dashboard.no_assessment_title')}</h4>
                 <p className="muted-sm">
-                  Take the official AI competency assessment to evaluate your current proficiency across your active MoSPI skills.
+                  {t('dashboard.no_assessment_desc')}
                 </p>
                 <Link to="/assessment" className="btn btn-primary" style={{ marginTop: '12px' }}>
                   <BrainCircuit size={16} /> {t('dashboard.start_assessment')}
@@ -439,19 +438,19 @@ export default function Dashboard() {
                   <div className="score-ring-box">
                     <div className="score-circular-value">
                       <span className="score-number">{animatedScore}%</span>
-                      <span className="score-caption">Overall Score</span>
+                      <span className="score-caption">{t('result.overall_score')}</span>
                     </div>
                   </div>
 
                   <div className="score-details-column">
                     <div className="score-meta-badge">
-                      <span className="meta-label">Accuracy:</span>
+                      <span className="meta-label">{t('dashboard.accuracy_label')}</span>
                       <strong className="meta-value">
-                        {latestAssessment.correctAnswers} / {latestAssessment.totalQuestions} Questions Correct
+                        {t('dashboard.questions_correct_of', { correct: latestAssessment.correctAnswers, total: latestAssessment.totalQuestions })}
                       </strong>
                     </div>
                     <div className="score-meta-badge">
-                      <span className="meta-label">Completed On:</span>
+                      <span className="meta-label">{t('dashboard.completed_on')}</span>
                       <strong className="meta-value">
                         {new Date(latestAssessment.completedAt).toLocaleDateString()}
                       </strong>
@@ -464,7 +463,7 @@ export default function Dashboard() {
                         <FileText size={14} /> {t('result.title')}
                       </Link>
                       <Link to="/igot-courses" className="btn btn-outline btn-sm">
-                        <GraduationCap size={14} /> View iGOT Courses
+                        <GraduationCap size={14} /> {t('dashboard.view_igot_courses')}
                       </Link>
                     </div>
                   </div>
@@ -473,7 +472,7 @@ export default function Dashboard() {
                 {/* Skill Distribution Bars */}
                 {latestAssessment.skillScores && latestAssessment.skillScores.length > 0 && (
                   <div className="skill-distribution-section" style={{ marginTop: '20px' }}>
-                    <h4 className="scores-subtitle">Domain Proficiency Breakdown (80% Cadre Benchmark):</h4>
+                    <h4 className="scores-subtitle">{t('dashboard.domain_breakdown')}</h4>
                     <div className="skill-score-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
                       {latestAssessment.skillScores.map((ss) => (
                         <SkillScoreBar 
@@ -496,10 +495,10 @@ export default function Dashboard() {
           <div className="card achievements-dashboard-card animate-card">
             <div className="card-header-clean">
               <div className="header-title-group">
-                <span className="section-pill success">Milestones &amp; Badges</span>
-                <h3 className="section-heading">Officer Competency Achievements</h3>
+                <span className="section-pill success">{t('dashboard.achievements_pill')}</span>
+                <h3 className="section-heading">{t('dashboard.achievements_heading')}</h3>
               </div>
-              <span className="achievements-note-tag">Verified by AI Evaluation</span>
+              <span className="achievements-note-tag">{t('dashboard.verified_ai')}</span>
             </div>
 
             <div className="achievements-grid">

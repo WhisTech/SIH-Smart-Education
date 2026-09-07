@@ -89,7 +89,7 @@ export default function Reassessment() {
   }
 
   if (loading) {
-    return <LoadingScreen message="Loading your competency profile & skill gaps..." />
+    return <LoadingScreen message={t('Loading official employee dossier...') || t('system.loading')} />
   }
 
   return (
@@ -97,22 +97,22 @@ export default function Reassessment() {
       {/* Hero Header */}
       <div className="page-hero-header">
         <div className="page-hero-content">
-          <span className="page-hero-badge badge-amber">🔄 Continuous Competency Cycle</span>
-          <h1 className="page-hero-title">🎯 AI Competency Reassessment</h1>
+          <span className="page-hero-badge badge-amber">{t('reassessment.cycle_badge')}</span>
+          <h1 className="page-hero-title">{t('reassessment.page_title')}</h1>
           <p className="page-hero-subtitle">
-            Validate skill improvements after completing recommended learning modules and update your official competency profile for <strong>{info?.designationName}</strong>.
+            {t('reassessment.page_subtitle', { designation: info?.designationName || 'Official Cadre' })}
           </p>
         </div>
         <div className="page-hero-actions">
           <Link to="/dashboard" className="btn btn-outline btn-sm">
-            ← Back to Dashboard
+            {t('reassessment.back_dashboard')}
           </Link>
         </div>
       </div>
 
       {error && (
         <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <strong>Notice:</strong> {error}
+          <strong>{t('Notice:')}</strong> {error}
         </div>
       )}
 
@@ -122,8 +122,8 @@ export default function Reassessment() {
         <div className="card" style={{ padding: '24px' }}>
           <div className="card-header-clean">
             <div className="header-title-group">
-              <span className="section-pill">Baseline Benchmark</span>
-              <h3 className="section-heading">Previous Assessment Summary</h3>
+              <span className="section-pill">{t('reassessment.baseline_pill')}</span>
+              <h3 className="section-heading">{t('reassessment.prev_summary_heading')}</h3>
             </div>
             <History size={18} color="#0284c7" />
           </div>
@@ -135,18 +135,18 @@ export default function Reassessment() {
                   {Math.round(info.previousAssessment.overallScore)}%
                 </span>
                 <span style={{ color: '#64748b', fontSize: '13.5px' }}>
-                  Baseline Competency Score
+                  {t('reassessment.baseline_score_label')}
                 </span>
               </div>
               <div style={{ fontSize: '13px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div><strong>Completed on:</strong> {new Date(info.previousAssessment.completedAt).toLocaleDateString()}</div>
-                <div><strong>Accuracy:</strong> {info.previousAssessment.correctAnswers} of {info.previousAssessment.totalQuestions} questions correct</div>
-                <div><strong>Attempt Reference:</strong> <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{info.previousAssessment.id.substring(0, 8)}...</code></div>
+                <div><strong>{t('reassessment.completed_on')}</strong> {new Date(info.previousAssessment.completedAt).toLocaleDateString()}</div>
+                <div><strong>{t('reassessment.accuracy')}</strong> {t('reassessment.questions_correct_of', { correct: info.previousAssessment.correctAnswers, total: info.previousAssessment.totalQuestions })}</div>
+                <div><strong>{t('reassessment.attempt_ref')}</strong> <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{info.previousAssessment.id.substring(0, 8)}...</code></div>
               </div>
             </div>
           ) : (
             <div style={{ padding: '20px 0', color: '#64748b' }}>
-              <p>No previous assessment on record. This reassessment will establish your baseline competency score.</p>
+              <p>{t('reassessment.no_prev_text')}</p>
             </div>
           )}
         </div>
@@ -155,17 +155,17 @@ export default function Reassessment() {
         <div className="card" style={{ padding: '24px', background: '#f8fafc' }}>
           <div className="card-header-clean">
             <div className="header-title-group">
-              <span className="section-pill">Test Protocol</span>
-              <h3 className="section-heading">Reassessment Parameters</h3>
+              <span className="section-pill">{t('reassessment.protocol_pill')}</span>
+              <h3 className="section-heading">{t('reassessment.params_heading')}</h3>
             </div>
             <Sliders size={18} color="#475569" />
           </div>
           <ul className="assessment-info-list" style={{ marginTop: '14px' }}>
-            <li><span>Total Questions:</span> <strong>{info?.totalQuestions || 6} Questions</strong></li>
-            <li><span>Estimated Time:</span> <strong>~{Math.round(info?.estimatedTime || 10)} Minutes</strong></li>
-            <li><span>Adaptive Difficulty:</span> <strong style={{ color: '#15803d' }}>Calibrated to previous gaps</strong></li>
-            <li><span>Target Cadre:</span> <strong>{info?.designationName}</strong></li>
-            <li><span>XP Bonus:</span> <strong style={{ color: '#ff9933' }}>+150 Reassessment XP</strong></li>
+            <li><span>{t('reassessment.total_q')}</span> <strong>{info?.totalQuestions || 6} {t('Questions')}</strong></li>
+            <li><span>{t('reassessment.est_time')}</span> <strong>~{Math.round(info?.estimatedTime || 10)} {t('minutes')}</strong></li>
+            <li><span>{t('Assessment Details')}:</span> <strong style={{ color: '#15803d' }}>{t('reassessment.calibrated_gaps')}</strong></li>
+            <li><span>{t('reassessment.target_cadre')}</span> <strong>{info?.designationName}</strong></li>
+            <li><span>{t('reassessment.xp_bonus')}</span> <strong style={{ color: '#ff9933' }}>+150 XP</strong></li>
           </ul>
         </div>
       </div>
@@ -174,10 +174,10 @@ export default function Reassessment() {
       <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
         <div className="card-header-clean">
           <div className="header-title-group">
-            <span className="section-pill warning">Target Competencies</span>
-            <h3 className="section-heading">Target Skill Gaps to Close</h3>
+            <span className="section-pill warning">{t('reassessment.target_comp_pill')}</span>
+            <h3 className="section-heading">{t('reassessment.target_gaps_heading')}</h3>
           </div>
-          <span style={{ fontSize: '13px', color: '#64748b' }}>Benchmark standard: 80%</span>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>{t('reassessment.benchmark_std')}</span>
         </div>
 
         {info?.skillGaps && info.skillGaps.length > 0 ? (
@@ -186,7 +186,7 @@ export default function Reassessment() {
               const isMet = g.assessedScore >= g.requiredScore
               const gapVal = Math.max(0, g.requiredScore - g.assessedScore)
               const statusClass = isMet ? 'low' : gapVal <= 15 ? 'medium' : 'high'
-              const badgeText = isMet ? '✓ Benchmark Met' : gapVal <= 15 ? '⚠ Needs Improvement' : '⚡ Priority Gap'
+              const badgeText = isMet ? t('reassessment.benchmark_met') : gapVal <= 15 ? t('reassessment.needs_improvement') : t('reassessment.priority_gap')
 
               return (
                 <div key={g.id || g.skillId} className="gap-card" style={{ margin: 0 }}>
@@ -195,7 +195,7 @@ export default function Reassessment() {
                       {badgeText}
                     </span>
                     <span className="gap-diff-text">
-                      {isMet ? 'Requirement Met' : `-${gapVal}% Delta`}
+                      {isMet ? t('reassessment.req_met') : t('reassessment.delta_tag', { val: gapVal })}
                     </span>
                   </div>
 
@@ -203,12 +203,12 @@ export default function Reassessment() {
 
                   <div className="gap-comparison-row">
                     <div className="gap-metric">
-                      <span className="gap-metric-label">Previous Score</span>
+                      <span className="gap-metric-label">{t('reassessment.prev_score')}</span>
                       <strong className="gap-metric-val current">{g.assessedScore}%</strong>
                     </div>
                     <div className="gap-arrow">➔</div>
                     <div className="gap-metric">
-                      <span className="gap-metric-label">Required Standard</span>
+                      <span className="gap-metric-label">{t('reassessment.req_std')}</span>
                       <strong className="gap-metric-val target">{g.requiredScore}%</strong>
                     </div>
                   </div>
@@ -226,7 +226,7 @@ export default function Reassessment() {
             })}
           </div>
         ) : (
-          <p style={{ color: '#64748b', marginTop: '10px' }}>No active skill gaps recorded. Start reassessment to establish your competencies.</p>
+          <p style={{ color: '#64748b', marginTop: '10px' }}>{t('result.no_gaps') || 'No active skill gaps recorded.'}</p>
         )}
       </div>
 
@@ -235,11 +235,11 @@ export default function Reassessment() {
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
           <div className="card-header-clean">
             <div className="header-title-group">
-              <span className="section-pill">Pre-Assessment Prep</span>
-              <h3 className="section-heading">Associated iGOT Learning Modules</h3>
+              <span className="section-pill">{t('reassessment.prep_pill')}</span>
+              <h3 className="section-heading">{t('reassessment.assoc_modules')}</h3>
             </div>
             <Link to="/igot-courses" className="link-sm">
-              Explore All Courses ➔
+              {t('reassessment.explore_all')}
             </Link>
           </div>
           
@@ -253,7 +253,7 @@ export default function Reassessment() {
                   </div>
                   <h4 className="course-title-v2">{c.title}</h4>
                   <div className="course-provider-v2">🏫 {c.provider}</div>
-                  <span className="course-skill-pill">Competency: {c.skillName}</span>
+                  <span className="course-skill-pill">{t('igot.competency_prefix', { skill: c.skillName })}</span>
                 </div>
               </div>
             ))}
@@ -264,9 +264,9 @@ export default function Reassessment() {
       {/* Launch CTA Card */}
       <div className="reassessment-cta-card">
         <span style={{ fontSize: '32px', marginBottom: '8px', display: 'inline-block' }}>🚀</span>
-        <h2>Ready to Validate Your Improvement?</h2>
+        <h2>{t('reassessment.ready_title')}</h2>
         <p>
-          A new reassessment attempt will evaluate your updated statistical knowledge. Scores will recalculate your cadre skill gaps and unlock milestone badges.
+          {t('reassessment.ready_desc')}
         </p>
 
         <button
@@ -276,10 +276,10 @@ export default function Reassessment() {
           className="reassessment-start-btn"
         >
           {starting ? (
-            'Initializing Reassessment...'
+            t('reassessment.initializing')
           ) : (
             <>
-              <RefreshCw size={18} /> Start Reassessment Now <ArrowRight size={18} />
+              <RefreshCw size={18} /> {t('reassessment.start_now_btn')} <ArrowRight size={18} />
             </>
           )}
         </button>

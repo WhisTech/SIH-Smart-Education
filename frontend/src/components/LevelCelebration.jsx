@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { Sparkles, Trophy, X, Award } from 'lucide-react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
+import { Sparkles, Trophy, X } from 'lucide-react'
 
 /**
  * LevelCelebration Component
@@ -12,6 +13,7 @@ export default function LevelCelebration({
   title = 'Probationer', 
   xp = 0 
 }) {
+  const { t } = useTranslation()
   if (!show) return null
 
   // Generate 24 randomized confetti particles
@@ -60,18 +62,17 @@ export default function LevelCelebration({
           <Trophy size={48} className="celebration-trophy" />
         </div>
 
-        <span className="celebration-tag">⭐ COMPETENCY TIER MILESTONE ⭐</span>
-        <h2 className="celebration-title">Level {level} Unlocked!</h2>
+        <span className="celebration-tag">{t('gamification.tier_milestone') || '⭐ COMPETENCY TIER MILESTONE ⭐'}</span>
+        <h2 className="celebration-title">{t('gamification.level_unlocked', { level }) || `Level ${level} Unlocked!`}</h2>
         <h3 className="celebration-role">{title}</h3>
 
         <p className="celebration-desc">
-          Outstanding work! Your verified MoSPI statistical competencies have earned you 
-          <strong> {xp.toLocaleString()} XP</strong> and elevated your cadre rank.
+          {t('gamification.celebration_desc', { xp: xp.toLocaleString() }) || `Outstanding work! Your verified MoSPI statistical competencies have earned you ${xp.toLocaleString()} XP and elevated your cadre rank.`}
         </p>
 
         <div className="celebration-xp-pill">
           <Sparkles size={16} color="#ff9933" />
-          <span>Tier Competency Benchmark Satisfied</span>
+          <span>{t('gamification.benchmark_satisfied') || 'Tier Competency Benchmark Satisfied'}</span>
         </div>
 
         <button 
@@ -79,7 +80,7 @@ export default function LevelCelebration({
           className="btn btn-primary celebration-cta"
           onClick={onClose}
         >
-          Continue Learning ➔
+          {t('gamification.continue_learning') || 'Continue Learning ➔'}
         </button>
       </div>
     </div>

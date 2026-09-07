@@ -138,22 +138,26 @@ export default function AssessmentResult() {
     return calculateLevel(earnedXp)
   }, [earnedXp])
 
+  const roundedOverall = Math.round(Number(result?.overallScore) || 0)
+  const animatedOverall = useCountUp(roundedOverall, 1200)
+  const animatedEarnedXp = useCountUp(earnedXp || 0, 1000)
+
   if (loading) {
-    return <LoadingScreen message="Calculating adaptive skill-wise scores & AI analysis..." />
+    return <LoadingScreen message={t('Calculating scores, analyzing competency & skill gaps...')} />
   }
 
   if (error || !result) {
     return (
       <div className="result-page" style={{ maxWidth: '900px', margin: '40px auto', padding: '0 20px' }}>
         <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <strong>Notice:</strong> {error || 'No assessment data available for this session.'}
+          <strong>{t('Notice:')}</strong> {error || t('No assessment data available for this session.')}
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <Link to="/assessment" className="btn btn-primary">
-            Take Assessment
+            {t('Take Assessment')}
           </Link>
           <Link to="/dashboard" className="btn btn-outline">
-            Return to Dashboard
+            {t('result.back_dashboard')}
           </Link>
         </div>
       </div>
@@ -164,10 +168,6 @@ export default function AssessmentResult() {
   const safeSkillScores = Array.isArray(skillScores) ? skillScores : []
   const safeSkillGaps = Array.isArray(skillGaps) ? skillGaps : []
   const safeCourses = Array.isArray(courses) ? courses : []
-
-  const roundedOverall = Math.round(Number(overallScore) || 0)
-  const animatedOverall = useCountUp(roundedOverall, 1200)
-  const animatedEarnedXp = useCountUp(earnedXp || 0, 1000)
 
   // Safe comparison data calculations
   const hasValidComparison = Boolean(
@@ -187,10 +187,10 @@ export default function AssessmentResult() {
       {/* Page Hero Header */}
       <div className="page-hero-header">
         <div className="page-hero-content">
-          <span className="page-hero-badge badge-green">✓ Evaluation Completed</span>
+          <span className="page-hero-badge badge-green">✓ {t('Evaluation Completed')}</span>
           <h1 className="page-hero-title">{t('result.title')}</h1>
           <p className="page-hero-subtitle">
-            Competency score calibrated against MoSPI official benchmark standards
+            {t('Competency score calibrated against MoSPI official benchmark standards')}
           </p>
         </div>
         <div className="page-hero-actions">
@@ -209,17 +209,17 @@ export default function AssessmentResult() {
           <div className="result-score-ring">
             <div className="result-score-inner">
               <span className="result-score-pct-text">{animatedOverall}%</span>
-              <span className="result-score-sub">Score</span>
+              <span className="result-score-sub">{t('Score')}</span>
             </div>
           </div>
 
           <div className="result-meta-info">
-            <h2>Overall Competency Rating</h2>
+            <h2>{t('Overall Competency Rating')}</h2>
             <p>
-              Accuracy: <strong>{correctAnswers} / {totalQuestions} questions correct</strong>
+              {t('reassessment.accuracy')} <strong>{correctAnswers} / {totalQuestions} {t('questions correct')}</strong>
             </p>
             <p style={{ marginTop: '4px' }}>
-              Status: <span className="tag tag-auth" style={{ color: '#ffffff' }}>Official Record Updated</span>
+              {t('Status:')} <span className="tag tag-auth" style={{ color: '#ffffff' }}>{t('Official Record Updated')}</span>
             </p>
           </div>
         </div>
@@ -229,10 +229,10 @@ export default function AssessmentResult() {
           <span className="xp-icon animated-pulse" aria-hidden="true">✨</span>
           <div className="result-xp-text">
             <span className="xp-val">+{animatedEarnedXp.toLocaleString()} XP</span>
-            <span className="xp-lbl">Experience Gained</span>
+            <span className="xp-lbl">{t('Experience Gained')}</span>
           </div>
           <div style={{ borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '14px', marginLeft: '4px' }}>
-            <span style={{ fontSize: '11px', color: '#cbd5e1', display: 'block' }}>Current Tier</span>
+            <span style={{ fontSize: '11px', color: '#cbd5e1', display: 'block' }}>{t('Current Tier')}</span>
             <strong style={{ color: '#ffffff', fontSize: '13px' }}>
               Lvl {levelProgress?.level || 1} · {levelProgress?.title || 'Probationer'}
             </strong>
@@ -245,7 +245,7 @@ export default function AssessmentResult() {
         <div className="card comparison-card">
           <div className="card-header-clean">
             <div className="header-title-group">
-              <span className="section-pill">Reassessment Delta</span>
+              <span className="section-pill">{t('Reassessment Delta')}</span>
               <h3 className="section-heading">{t('result.historical_progression')}</h3>
             </div>
             <span className={`delta-badge ${overallDiff >= 0 ? 'delta-pos' : 'delta-neg'}`}>
@@ -315,8 +315,8 @@ export default function AssessmentResult() {
       <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
         <div className="card-header-clean">
           <div className="header-title-group">
-            <span className="section-pill">Competency Breakdown</span>
-            <h3 className="section-heading">Assessed Skills vs Cadre Benchmark (80%)</h3>
+            <span className="section-pill">{t('Competency Breakdown')}</span>
+            <h3 className="section-heading">{t('Assessed Skills vs Cadre Benchmark (80%)')}</h3>
           </div>
         </div>
 
@@ -334,7 +334,7 @@ export default function AssessmentResult() {
             ))}
           </div>
         ) : (
-          <p style={{ color: '#64748b' }}>No individual skill scores available.</p>
+          <p style={{ color: '#64748b' }}>{t('No individual skill scores available.')}</p>
         )}
       </div>
 
@@ -342,10 +342,10 @@ export default function AssessmentResult() {
       <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
         <div className="card-header-clean">
           <div className="header-title-group">
-            <span className="section-pill warning">Priority Action</span>
+            <span className="section-pill warning">{t('Priority Action')}</span>
             <h3 className="section-heading">{t('result.skill_gap_analysis')}</h3>
           </div>
-          <span style={{ fontSize: '13px', color: '#64748b' }}>{safeSkillGaps.length} Target Gaps Identified</span>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>{safeSkillGaps.length} {t('Target Gaps Identified')}</span>
         </div>
 
         {safeSkillGaps.length === 0 ? (
@@ -375,7 +375,7 @@ export default function AssessmentResult() {
                       {statusText}
                     </span>
                     <span className="gap-diff-text">
-                      {isMet ? 'Benchmark Met' : `-${gapVal}% Delta`}
+                      {isMet ? t('Benchmark Met') : `-${gapVal}% ${t('Delta')}`}
                     </span>
                   </div>
 
@@ -403,7 +403,7 @@ export default function AssessmentResult() {
       <div className="card" style={{ padding: '24px' }}>
         <div className="card-header-clean">
           <div className="header-title-group">
-            <span className="section-pill">Curated Learning</span>
+            <span className="section-pill">{t('Curated Learning')}</span>
             <h3 className="section-heading">{t('result.recommended_courses')}</h3>
           </div>
           <Link to="/igot-courses" className="link-sm">
@@ -433,7 +433,7 @@ export default function AssessmentResult() {
                     rel="noopener noreferrer"
                     className="btn btn-primary btn-sm btn-block"
                   >
-                    View Module on iGOT →
+                    {t('View Module on iGOT →')}
                   </a>
                 </div>
               </div>

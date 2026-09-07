@@ -342,47 +342,47 @@ export default function Signup() {
             {/* SECTION 1: ACCOUNT CREDENTIALS */}
             <div className="form-section" style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f2338', marginBottom: '12px' }}>
-                1. Account Credentials
+                {t('1. Account Credentials') || '1. Account Credentials'}
               </h3>
 
               <div className="form-grid">
                 <div className="form-group full-width">
-                  <label htmlFor="email">Official Email Address *</label>
+                  <label htmlFor="email">{t('auth.email_label')}</label>
                   <input
                     id="email"
                     name="email"
                     type="email"
                     value={form.email}
                     onChange={handleChange}
-                    placeholder="e.g. officer.name@mospi.gov.in"
+                    placeholder={t('auth.email_placeholder')}
                     autoComplete="email"
                     disabled={loading}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="password">Password *</label>
+                  <label htmlFor="password">{t('auth.password_label')}</label>
                   <input
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
                     value={form.password}
                     onChange={handleChange}
-                    placeholder="Min. 6 characters"
+                    placeholder={t('auth.password_placeholder')}
                     autoComplete="new-password"
                     disabled={loading}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="confirmPassword">Confirm Password *</label>
+                  <label htmlFor="confirmPassword">{t('Confirm Password *') || 'Confirm Password *'}</label>
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showPassword ? 'text' : 'password'}
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    placeholder="Re-enter password"
+                    placeholder={t('auth.password_placeholder')}
                     autoComplete="new-password"
                     disabled={loading}
                   />
@@ -396,7 +396,7 @@ export default function Signup() {
                     checked={showPassword}
                     onChange={() => setShowPassword((s) => !s)}
                   />
-                  Show passwords
+                  {showPassword ? t('auth.hide_password') : t('auth.show_password')}
                 </label>
               </div>
             </div>
@@ -404,39 +404,39 @@ export default function Signup() {
             {/* SECTION 2: OFFICIAL EMPLOYEE DETAILS */}
             <div className="form-section" style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f2338', marginBottom: '12px' }}>
-                2. Employee Service Particulars
+                {t('2. Employee Information') || '2. Employee Service Particulars'}
               </h3>
 
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="name">Full Name *</label>
+                  <label htmlFor="name">{t('auth.full_name_label')}</label>
                   <input
                     id="name"
                     name="name"
                     type="text"
                     value={form.name}
                     onChange={handleChange}
-                    placeholder="e.g. Dr. Rajesh Verma"
+                    placeholder={t('auth.full_name_placeholder')}
                     disabled={loading}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="employeeId">Employee ID / Gov ID *</label>
+                  <label htmlFor="employeeId">{t('auth.employee_id_label') || 'Employee ID'}</label>
                   <input
                     id="employeeId"
                     name="employeeId"
                     type="text"
                     value={form.employeeId}
                     onChange={handleChange}
-                    placeholder="e.g. MOSPI-10482"
+                    placeholder={t('auth.employee_id_placeholder')}
                     autoComplete="off"
                     disabled={loading}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="designationId">Official Designation *</label>
+                  <label htmlFor="designationId">{t('auth.designation_label')}</label>
                   <select
                     id="designationId"
                     name="designationId"
@@ -446,8 +446,8 @@ export default function Signup() {
                   >
                     <option value="">
                       {designationsLoading
-                        ? 'Loading designations...'
-                        : '-- Select Designation --'}
+                        ? t('Loading designations...')
+                        : t('-- Select Designation --')}
                     </option>
                     {designations.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -458,7 +458,7 @@ export default function Signup() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="department">Department / Division *</label>
+                  <label htmlFor="department">{t('auth.department_label')}</label>
                   <select
                     id="department"
                     name="department"
@@ -466,7 +466,7 @@ export default function Signup() {
                     onChange={handleChange}
                     disabled={loading}
                   >
-                    <option value="">-- Select Department --</option>
+                    <option value="">{t('-- Select Department --')}</option>
                     {DEPARTMENTS.map((dept) => (
                       <option key={dept} value={dept}>
                         {dept}
@@ -476,7 +476,7 @@ export default function Signup() {
                 </div>
 
                 <div className="form-group full-width">
-                  <label htmlFor="experienceYears">Experience in Service (Years) *</label>
+                  <label htmlFor="experienceYears">{t('Experience in Statistics (Years) *') || 'Experience in Service (Years) *'}</label>
                   <input
                     id="experienceYears"
                     name="experienceYears"
@@ -495,7 +495,7 @@ export default function Signup() {
             {/* SECTION 3: CURRENT SKILLS */}
             <div className="form-section" style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f2338', marginBottom: '12px' }}>
-                3. Current Skills &amp; Competencies
+                {t('Verified Skills & Competencies') || '3. Current Skills & Competencies'}
               </h3>
 
               <SkillSelector
@@ -515,13 +515,13 @@ export default function Signup() {
               className="auth-submit-btn"
               disabled={loading || designationsLoading}
             >
-              {loading ? 'Creating Account & Saving Profile...' : 'Complete Employee Registration →'}
+              {loading ? t('auth.signing_up') : t('auth.sign_up_btn')}
             </button>
 
           </form>
 
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', marginTop: '32px' }}>
-            Protected with Supabase Authentication &amp; Government Encrypted Database
+            {t('auth.auth_footer')}
           </p>
         </div>
       </div>

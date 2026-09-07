@@ -204,7 +204,7 @@ export default function Assessment() {
       <div className="assessment-page">
         <div className="page-hero-header">
           <div className="page-hero-content">
-            <span className="page-hero-badge">🏛️ Official MoSPI Assessment</span>
+            <span className="page-hero-badge">🏛️ {t('Official MoSPI Assessment')}</span>
             <h1 className="page-hero-title">{t('AI Competency Assessment')}</h1>
             <p className="page-hero-subtitle">
               {t('This adaptive assessment validates your active competencies against your official designation requirements.')}
@@ -222,10 +222,10 @@ export default function Assessment() {
           <div className="assessment-intro-header">
             <span className="assessment-intro-icon" aria-hidden="true">🎯</span>
             <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px' }}>
-              Adaptive Competency Evaluation
+              {t('Adaptive Competency Evaluation')}
             </h2>
             <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
-              Calibrated to official Indian Statistical Service (ISS) benchmark standards
+              {t('Calibrated to official Indian Statistical Service (ISS) benchmark standards')}
             </p>
           </div>
 
@@ -240,7 +240,7 @@ export default function Assessment() {
                   </li>
                   <li>
                     <span>{t('Current Skills:')}</span>
-                    <strong>{assessmentInfo.currentSkills.length} Mapped</strong>
+                    <strong>{assessmentInfo.currentSkills.length} {t('Mapped')}</strong>
                   </li>
                   <li style={{ flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
                     {assessmentInfo.currentSkills.map(s => (
@@ -257,18 +257,18 @@ export default function Assessment() {
                 <ul className="assessment-info-list">
                   <li>
                     <span>{t('Total Questions:')}</span>
-                    <strong>{assessmentInfo.totalQuestions} Questions</strong>
+                    <strong>{assessmentInfo.totalQuestions} {t('Questions')}</strong>
                   </li>
                   <li>
                     <span>{t('Estimated Time:')}</span>
                     <strong>{assessmentInfo.estimatedTime} {t('minutes')}</strong>
                   </li>
                   <li>
-                    <span>Adaptive Testing:</span>
-                    <strong style={{ color: '#15803d' }}>Active AI Engine</strong>
+                    <span>{t('Adaptive Testing:')}</span>
+                    <strong style={{ color: '#15803d' }}>{t('Active AI Engine')}</strong>
                   </li>
                   <li>
-                    <span>XP Reward:</span>
+                    <span>{t('XP Reward:')}</span>
                     <strong style={{ color: '#ff9933' }}>+1,000 Base XP</strong>
                   </li>
                 </ul>
@@ -314,7 +314,7 @@ export default function Assessment() {
     return (
       <div className="assessment-page" style={{ maxWidth: '860px', margin: '40px auto', padding: '0 20px' }}>
         <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <strong>Notice:</strong> {error || t('No active question found. Please retry or return to dashboard.')}
+          <strong>{t('Notice:')}</strong> {error || t('No active question found. Please retry or return to dashboard.')}
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {assessmentId ? (
@@ -354,7 +354,7 @@ export default function Assessment() {
     <div className="assessment-page">
       <div className="page-hero-header">
         <div className="page-hero-content">
-          <span className="page-hero-badge">🎯 Active Competency Test</span>
+          <span className="page-hero-badge">🎯 {t('Active Competency Test')}</span>
           <h1 className="page-hero-title">{t('AI Competency Assessment')}</h1>
           <p className="page-hero-subtitle">{t('Answer the following question to advance.')}</p>
         </div>
@@ -387,7 +387,7 @@ export default function Assessment() {
             <Target size={14} /> {t('Skill:')} <strong>{currentQuestion.skillName}</strong>
           </span>
           <span className={`quiz-difficulty-tag diff-${currentQuestion.difficulty?.toLowerCase() || 'medium'}`}>
-            {(currentQuestion.difficulty || 'medium').toUpperCase()} DIFFICULTY
+            {(currentQuestion.difficulty || 'medium').toUpperCase()} {t('DIFFICULTY')}
           </span>
         </div>
 

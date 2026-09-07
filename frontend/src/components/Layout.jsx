@@ -158,8 +158,8 @@ export default function Layout() {
       <div className="app-content-wrapper">
         <header className="desktop-top-header">
           <div className="gov-topbar-brand">
-            <span className="gov-pill">GOVERNMENT OF INDIA</span>
-            <span className="gov-ministry">Ministry of Statistics and Programme Implementation</span>
+            <span className="gov-pill">{t('nav.gov_india')}</span>
+            <span className="gov-ministry">{t('nav.mospi_full')}</span>
           </div>
           <div className="desktop-header-right">
             <LanguageSelector />

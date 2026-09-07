@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * AchievementCard Component
@@ -10,6 +11,7 @@ export default function AchievementCard({
   description = '', 
   earned = false 
 }) {
+  const { t } = useTranslation()
   const [celebrating, setCelebrating] = useState(false)
 
   const handleBadgeClick = () => {
@@ -31,9 +33,9 @@ export default function AchievementCard({
       <div className="achievement-icon-box" aria-hidden="true">
         <span className="achievement-icon">{icon}</span>
         {earned ? (
-          <span className="achievement-status-badge earned" title="Earned">✓</span>
+          <span className="achievement-status-badge earned" title={t('gamification.earned') || 'Earned'}>✓</span>
         ) : (
-          <span className="achievement-status-badge locked" title="Locked">🔒</span>
+          <span className="achievement-status-badge locked" title={t('gamification.locked') || 'Locked'}>🔒</span>
         )}
       </div>
 
@@ -41,7 +43,7 @@ export default function AchievementCard({
         <strong className="achievement-title">{title}</strong>
         <p className="achievement-desc">{description}</p>
         <span className={`achievement-chip ${earned ? 'earned' : 'locked'}`}>
-          {earned ? '⭐ Unlocked' : 'In Progress'}
+          {earned ? (t('gamification.unlocked') || '⭐ Unlocked') : (t('gamification.in_progress') || 'In Progress')}
         </span>
       </div>
 

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 /**
  * GapCard Component
@@ -12,16 +13,17 @@ export default function GapCard({
   gapPercentage = 0, 
   priority = 'High' 
 }) {
+  const { t } = useTranslation()
   const normPriority = (priority || 'Medium').toLowerCase()
 
   return (
     <div className={`gap-card gap-priority-${normPriority}`}>
       <div className="gap-card-top">
         <span className={`gap-priority-pill priority-${normPriority}`}>
-          {priority} Priority
+          {priority === 'High' ? t('igot.high_priority_gap') : priority === 'Low' ? t('igot.low_priority_gap') : t('igot.medium_priority_gap')}
         </span>
         <span className="gap-diff-text">
-          - {Math.round(gapPercentage)}% Delta
+          - {Math.round(gapPercentage)}% {t('result.gap') || 'Delta'}
         </span>
       </div>
 
@@ -29,19 +31,19 @@ export default function GapCard({
 
       <div className="gap-comparison-row">
         <div className="gap-metric">
-          <span className="gap-metric-label">Current Score</span>
+          <span className="gap-metric-label">{t('result.current_level') || 'Current Score'}</span>
           <strong className="gap-metric-val current">{Math.round(assessedScore)}%</strong>
         </div>
         <div className="gap-arrow" aria-hidden="true">➔</div>
         <div className="gap-metric">
-          <span className="gap-metric-label">Benchmark</span>
+          <span className="gap-metric-label">{t('result.required_level') || 'Benchmark'}</span>
           <strong className="gap-metric-val target">{Math.round(requiredScore)}%</strong>
         </div>
       </div>
 
       <div className="gap-card-action">
         <Link to="/igot-courses" className="btn btn-outline btn-sm btn-block">
-          View iGOT Modules ➔
+          {t('dashboard.go_to_courses') || 'View iGOT Modules ➔'}
         </Link>
       </div>
     </div>

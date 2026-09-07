@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCountUp } from '../lib/useCountUp'
 
 /**
@@ -12,18 +13,19 @@ export default function SkillScoreBar({
   questionsCount,
   correctCount 
 }) {
+  const { t } = useTranslation()
   const targetPct = Math.round(Number(percentage) || 0)
   const animatedPct = useCountUp(targetPct, 1000)
   
   // Status classification
   let statusClass = 'low'
-  let statusText = 'Needs Improvement'
+  let statusText = t('reassessment.needs_improvement') || 'Needs Improvement'
   if (targetPct >= benchmark) {
     statusClass = 'high'
-    statusText = 'Benchmark Met'
+    statusText = t('reassessment.benchmark_met') || 'Benchmark Met'
   } else if (targetPct >= 60) {
     statusClass = 'medium'
-    statusText = 'Developing'
+    statusText = t('dashboard.moderate') || 'Developing'
   }
 
   return (
@@ -33,7 +35,7 @@ export default function SkillScoreBar({
           <strong className="skill-bar-name">{skillName}</strong>
           {questionsCount != null && (
             <span className="skill-questions-count">
-              ({correctCount || 0}/{questionsCount} correct)
+              ({correctCount || 0}/{questionsCount} {t('result.correct') || 'correct'})
             </span>
           )}
         </div>
@@ -52,7 +54,7 @@ export default function SkillScoreBar({
             title={`Cadre Benchmark: ${benchmark}%`}
           >
             <span className="benchmark-line" />
-            <span className="benchmark-tooltip">{benchmark}% Target</span>
+            <span className="benchmark-tooltip">{benchmark}% {t('result.required') || 'Target'}</span>
           </div>
         )}
         <div 

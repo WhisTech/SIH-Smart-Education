@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * LevelBadge Component
@@ -11,6 +12,8 @@ export default function LevelBadge({
   size = 'md',
   onClick
 }) {
+  const { t } = useTranslation()
+
   return (
     <div 
       className={`level-badge level-badge-${size} ${onClick ? 'clickable-badge' : ''}`} 
@@ -25,7 +28,7 @@ export default function LevelBadge({
         <strong>{level}</strong>
       </div>
       <div className="level-badge-info">
-        <span className="level-badge-label">Competency Tier</span>
+        <span className="level-badge-label">{t('gamification.competency_tier') || 'Competency Tier'}</span>
         <span className="level-badge-title">{title}</span>
       </div>
     </div>
