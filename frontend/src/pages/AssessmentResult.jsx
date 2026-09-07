@@ -18,7 +18,14 @@ import {
   ArrowRight
 } from 'lucide-react'
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+// Safely format text or skill name for display
+function safeText(val, fallback = '') {
+  if (!val) return fallback
+  if (typeof val === 'object') {
+    return val.en || val.name || Object.values(val)[0] || fallback
+  }
+  return String(val)
+}
 
 export default function AssessmentResult() {
   const { assessmentId } = useParams()
@@ -285,7 +292,7 @@ export default function AssessmentResult() {
                   const change = Math.round(cScore - pScore)
                   
                   const skillNameObj = safeSkillScores.find((s) => s.skillId === curr.skill_id)
-                  const name = skillNameObj ? skillNameObj.skillName : 'Statistical Competency'
+                  const name = skillNameObj ? safeText(skillNameObj.skillName, 'Statistical Competency') : 'Statistical Competency'
 
                   return (
                     <tr key={curr.skill_id || Math.random()}>
@@ -325,7 +332,7 @@ export default function AssessmentResult() {
             {safeSkillScores.map((ss) => (
               <SkillScoreBar 
                 key={ss.skillId || ss.skillName}
-                skillName={ss.skillName || 'Skill'}
+                skillName={safeText(ss.skillName, 'Skill')}
                 percentage={ss.percentage || 0}
                 questionsCount={ss.questionsCount}
                 correctCount={ss.correctCount}
@@ -379,7 +386,7 @@ export default function AssessmentResult() {
                     </span>
                   </div>
 
-                  <h4 className="gap-skill-title">{gap.skillName || 'Competency Skill'}</h4>
+                  <h4 className="gap-skill-title">{safeText(gap.skillName, 'Competency Skill')}</h4>
 
                   <div className="gap-comparison-row">
                     <div className="gap-metric">
@@ -422,9 +429,9 @@ export default function AssessmentResult() {
                     <span className="course-platform-badge">🏛️ iGOT Karmayogi</span>
                     <span className="course-xp-pill">+100 XP</span>
                   </div>
-                  <h4 className="course-title-v2">{rec.title || 'Official Skill Module'}</h4>
-                  <div className="course-provider-v2">🏫 {rec.provider || 'iGOT Karmayogi'}</div>
-                  <p className="course-desc-v2">💡 {rec.reason || 'Recommended based on skill analysis'}</p>
+                  <h4 className="course-title-v2">{safeText(rec.title, 'Official Skill Module')}</h4>
+                  <div className="course-provider-v2">🏫 {safeText(rec.provider, 'iGOT Karmayogi')}</div>
+                  <p className="course-desc-v2">💡 {safeText(rec.reason, 'Recommended based on skill analysis')}</p>
                 </div>
                 <div>
                   <a

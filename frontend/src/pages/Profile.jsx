@@ -45,8 +45,17 @@ const DEPARTMENTS = [
   'Other'
 ]
 
+// Safely format skill name for display (handles localized objects or strings)
+function formatSkillName(skillName, lang = 'en') {
+  if (!skillName) return ''
+  if (typeof skillName === 'object') {
+    return skillName[lang] || skillName.en || skillName.name || Object.values(skillName)[0] || ''
+  }
+  return String(skillName)
+}
+
 export default function Profile() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user, profile, loading: authLoading, profileLoading, reloadProfile } = useAuth()
 
   // UI state
@@ -537,7 +546,7 @@ export default function Profile() {
           <div className="dossier-stats-strip">
             <div className="dossier-stat-box">
               <span className="dossier-stat-label">{t('profile.verified_comp_label')}</span>
-              <span className="dossier-stat-val highlight">{employeeSkills.length} {t('skills')}</span>
+              <span className="dossier-stat-val highlight">{employeeSkills.length} {t('profile.skills_unit', 'Skills')}</span>
             </div>
             <div className="dossier-stat-box">
               <span className="dossier-stat-label">{t('profile.ai_assess_label')}</span>
@@ -746,9 +755,9 @@ export default function Profile() {
                       </div>
                       <div className="dossier-skill-chips-row">
                         {catSkills.map((s) => (
-                          <div key={s.id} className="dossier-skill-chip-v2" title={s.description || s.name}>
+                          <div key={s.id} className="dossier-skill-chip-v2" title={typeof s.description === 'string' ? s.description : formatSkillName(s.name, i18n.language)}>
                             <span className="dossier-skill-chip-check">✓</span>
-                            <span className="dossier-skill-chip-name">{s.name}</span>
+                            <span className="dossier-skill-chip-name">{formatSkillName(s.name, i18n.language)}</span>
                           </div>
                         ))}
                       </div>

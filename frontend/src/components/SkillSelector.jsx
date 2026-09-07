@@ -12,6 +12,17 @@ const COMMON_SKILL_NAMES = [
   'Data Governance'
 ]
 
+// Safely extract a readable string name from a skill object or string
+function getSkillName(s, lang = 'en') {
+  if (!s) return ''
+  const name = s.name !== undefined ? s.name : s
+  if (!name) return ''
+  if (typeof name === 'object') {
+    return name[lang] || name.en || name.name || Object.values(name)[0] || ''
+  }
+  return String(name)
+}
+
 export default function SkillSelector({
   skills = [],
   skillsLoading = false,
@@ -22,7 +33,7 @@ export default function SkillSelector({
   onAddSkill,
   disabled = false
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -34,20 +45,20 @@ export default function SkillSelector({
     const matched = []
     for (const targetName of COMMON_SKILL_NAMES) {
       const match = skills.find(
-        (s) => s.name.toLowerCase() === targetName.toLowerCase()
+        (s) => getSkillName(s, i18n.language).toLowerCase() === targetName.toLowerCase()
       ) || skills.find(
-        (s) => s.name.toLowerCase().startsWith(targetName.toLowerCase())
+        (s) => getSkillName(s, i18n.language).toLowerCase().startsWith(targetName.toLowerCase())
       ) || skills.find(
-        (s) => s.name.toLowerCase().includes(targetName.toLowerCase())
+        (s) => getSkillName(s, i18n.language).toLowerCase().includes(targetName.toLowerCase())
       )
       if (match && !matched.some((m) => m.id === match.id)) {
         matched.push(match)
       }
     }
     return matched
-  }, [skills])
+  }, [skills, i18n.language])
 
-  // Filter search results (up to 12 matches not yet selected)
+  // Filter search results (up to 14 matches not yet selected)
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     if (!query || !skills || skills.length === 0) return []
@@ -56,12 +67,13 @@ export default function SkillSelector({
       .filter((s) => {
         // Exclude already selected skills from search dropdown
         if (selectedSkillIds.includes(s.id)) return false
-        const nameMatch = s.name.toLowerCase().includes(query)
-        const catMatch = s.category && s.category.toLowerCase().includes(query)
+        const sName = getSkillName(s, i18n.language).toLowerCase()
+        const nameMatch = sName.includes(query)
+        const catMatch = s.category && String(s.category).toLowerCase().includes(query)
         return nameMatch || catMatch
       })
       .slice(0, 14)
-  }, [skills, searchQuery, selectedSkillIds])
+  }, [skills, searchQuery, selectedSkillIds, i18n.language])
 
   // Close popover when clicking outside
   useEffect(() => {
@@ -183,10 +195,10 @@ export default function SkillSelector({
                 >
                   <div className="result-main">
                     <span className="result-cat">{skill.category || 'Skill'}</span>
-                    <span className="result-name">{skill.name}</span>
+                    <span className="result-name">{getSkillName(skill, i18n.language)}</span>
                   </div>
                   {skill.description && (
-                    <span className="result-desc">{skill.description}</span>
+                    <span className="result-desc">{typeof skill.description === 'string' ? skill.description : ''}</span>
                   )}
                 </div>
               ))
@@ -216,7 +228,7 @@ export default function SkillSelector({
                   disabled={disabled}
                 >
                   <span className="pill-check">{isSelected ? '☑' : '☐'}</span>
-                  <span className="pill-name">{s.name}</span>
+                  <span className="pill-name">{getSkillName(s, i18n.language)}</span>
                 </button>
               )
             })}
@@ -238,7 +250,7 @@ export default function SkillSelector({
           <div className="skill-chips-container" aria-label="Selected skills list">
             {selectedSkillIds.map((skillId) => {
               const skillObj = skills.find((s) => s.id === skillId)
-              const label = skillObj ? skillObj.name : skillId
+              const label = skillObj ? getSkillName(skillObj, i18n.language) : String(skillId)
               const category = skillObj?.category || 'Skill'
               return (
                 <span key={skillId} className="skill-chip">

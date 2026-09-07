@@ -18,6 +18,15 @@ import {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
+// Safely format text or skill name for display
+function safeText(val, fallback = '') {
+  if (!val) return fallback
+  if (typeof val === 'object') {
+    return val.en || val.name || Object.values(val)[0] || fallback
+  }
+  return String(val)
+}
+
 export default function IgotDashboard() {
   const { user, profile } = useAuth()
   const { t } = useTranslation()
@@ -148,7 +157,7 @@ export default function IgotDashboard() {
   const employeeDesignationName = useMemo(() => {
     if (!profile?.designation_id) return 'Official Statistical Cadre'
     const match = designations.find((d) => d.id === profile.designation_id)
-    return match ? match.name : profile.designation_id
+    return safeText(match ? match.name : profile.designation_id, 'Official Statistical Cadre')
   }, [profile, designations])
 
   // Filter catalog courses
@@ -164,9 +173,9 @@ export default function IgotDashboard() {
 
       if (!query) return true
 
-      const titleMatch = course.title.toLowerCase().includes(query)
-      const providerMatch = course.provider.toLowerCase().includes(query)
-      const skillMatch = course.skills.some((s) => s.toLowerCase().includes(query))
+      const titleMatch = safeText(course.title).toLowerCase().includes(query)
+      const providerMatch = safeText(course.provider).toLowerCase().includes(query)
+      const skillMatch = (course.skills || []).some((s) => safeText(s).toLowerCase().includes(query))
 
       return titleMatch || providerMatch || skillMatch
     })
@@ -270,13 +279,13 @@ export default function IgotDashboard() {
                       <span className="course-xp-pill animated-pulse">+100 XP</span>
                     </div>
 
-                    <h3 className="course-title-v2">{rec.title}</h3>
-                    <div className="course-provider-v2">🏫 {rec.provider}</div>
-                    <p className="course-desc-v2">💡 {rec.reason}</p>
+                    <h3 className="course-title-v2">{safeText(rec.title, 'Curated Module')}</h3>
+                    <div className="course-provider-v2">🏫 {safeText(rec.provider, 'iGOT Karmayogi')}</div>
+                    <p className="course-desc-v2">💡 {safeText(rec.reason, 'Recommended module')}</p>
                     
                     <div style={{ marginTop: '8px' }}>
                       <span className="course-skill-pill" title="Target Cadre Competency">
-                        {t('igot.competency_prefix', { skill: rec.skillName })}
+                        {t('igot.competency_prefix', { skill: safeText(rec.skillName, '') })}
                       </span>
                     </div>
                   </div>
@@ -358,17 +367,17 @@ export default function IgotDashboard() {
 
               <div>
                 <div className="course-card-top">
-                  <span className="course-platform-badge">🏛️ {course.platform}</span>
-                  <span className="course-level-badge">{course.level}</span>
+                  <span className="course-platform-badge">🏛️ {safeText(course.platform, 'iGOT')}</span>
+                  <span className="course-level-badge">{safeText(course.level, 'Intermediate')}</span>
                 </div>
 
-                <h3 className="course-title-v2">{course.title}</h3>
-                <div className="course-provider-v2">🏫 {course.provider}</div>
-                <p className="course-desc-v2">{course.description}</p>
+                <h3 className="course-title-v2">{safeText(course.title, 'Course')}</h3>
+                <div className="course-provider-v2">🏫 {safeText(course.provider, 'iGOT')}</div>
+                <p className="course-desc-v2">{safeText(course.description, '')}</p>
 
                 <div className="course-skills-chips">
-                  {course.skills.map((s, idx) => (
-                    <span key={idx} className="course-skill-pill">{s}</span>
+                  {(course.skills || []).map((s, idx) => (
+                    <span key={idx} className="course-skill-pill">{safeText(s)}</span>
                   ))}
                 </div>
               </div>

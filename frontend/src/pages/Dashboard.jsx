@@ -446,13 +446,13 @@ export default function Dashboard() {
                     <div className="score-meta-badge">
                       <span className="meta-label">{t('dashboard.accuracy_label')}</span>
                       <strong className="meta-value">
-                        {t('dashboard.questions_correct_of', { correct: latestAssessment.correctAnswers, total: latestAssessment.totalQuestions })}
+                        {t('dashboard.questions_correct_of', { correct: latestAssessment.correctAnswers ?? 0, total: latestAssessment.totalQuestions ?? 0 })}
                       </strong>
                     </div>
                     <div className="score-meta-badge">
                       <span className="meta-label">{t('dashboard.completed_on')}</span>
                       <strong className="meta-value">
-                        {new Date(latestAssessment.completedAt).toLocaleDateString()}
+                        {latestAssessment.completedAt ? new Date(latestAssessment.completedAt).toLocaleDateString() : '—'}
                       </strong>
                     </div>
                     <div className="assessment-actions-row">
@@ -477,7 +477,7 @@ export default function Dashboard() {
                       {latestAssessment.skillScores.map((ss) => (
                         <SkillScoreBar 
                           key={ss.skillId}
-                          skillName={ss.skillName}
+                          skillName={typeof ss.skillName === 'object' ? (ss.skillName?.en || Object.values(ss.skillName || {})[0] || 'Competency') : String(ss.skillName || 'Competency')}
                           percentage={ss.percentage}
                           questionsCount={ss.questionsCount}
                           correctCount={ss.correctCount}

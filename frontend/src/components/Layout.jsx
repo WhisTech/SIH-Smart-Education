@@ -107,11 +107,11 @@ export default function Layout() {
               </NavLink>
               <NavLink to="/arena" end className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <Swords size={20} />
-                {isSidebarOpen && <span>Skill Arena</span>}
+                {isSidebarOpen && <span>{t('nav.skill_arena', 'Skill Arena')}</span>}
               </NavLink>
               <NavLink to="/arena/leaderboard" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <Trophy size={20} />
-                {isSidebarOpen && <span>Arena Leaderboard</span>}
+                {isSidebarOpen && <span>{t('nav.arena_leaderboard', 'Arena Leaderboard')}</span>}
               </NavLink>
               <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setIsMobileMenuOpen(false)}>
                 <UserCircle size={20} />

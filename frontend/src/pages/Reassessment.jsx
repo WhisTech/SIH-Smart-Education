@@ -17,6 +17,15 @@ import {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
+// Safely format text or skill name for display
+function safeText(val, fallback = '') {
+  if (!val) return fallback
+  if (typeof val === 'object') {
+    return val.en || val.name || Object.values(val)[0] || fallback
+  }
+  return String(val)
+}
+
 export default function Reassessment() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
@@ -100,7 +109,7 @@ export default function Reassessment() {
           <span className="page-hero-badge badge-amber">{t('reassessment.cycle_badge')}</span>
           <h1 className="page-hero-title">{t('reassessment.page_title')}</h1>
           <p className="page-hero-subtitle">
-            {t('reassessment.page_subtitle', { designation: info?.designationName || 'Official Cadre' })}
+            {t('reassessment.page_subtitle', { designation: safeText(info?.designationName, 'Official Cadre') })}
           </p>
         </div>
         <div className="page-hero-actions">
@@ -132,16 +141,16 @@ export default function Reassessment() {
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px', margin: '14px 0 16px' }}>
                 <span style={{ fontSize: '36px', fontWeight: '800', color: '#0284c7', lineHeight: 1 }}>
-                  {Math.round(info.previousAssessment.overallScore)}%
+                  {Math.round(info.previousAssessment.overallScore || 0)}%
                 </span>
                 <span style={{ color: '#64748b', fontSize: '13.5px' }}>
                   {t('reassessment.baseline_score_label')}
                 </span>
               </div>
               <div style={{ fontSize: '13px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div><strong>{t('reassessment.completed_on')}</strong> {new Date(info.previousAssessment.completedAt).toLocaleDateString()}</div>
-                <div><strong>{t('reassessment.accuracy')}</strong> {t('reassessment.questions_correct_of', { correct: info.previousAssessment.correctAnswers, total: info.previousAssessment.totalQuestions })}</div>
-                <div><strong>{t('reassessment.attempt_ref')}</strong> <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{info.previousAssessment.id.substring(0, 8)}...</code></div>
+                <div><strong>{t('reassessment.completed_on')}</strong> {info.previousAssessment.completedAt && !isNaN(new Date(info.previousAssessment.completedAt).getTime()) ? new Date(info.previousAssessment.completedAt).toLocaleDateString() : '—'}</div>
+                <div><strong>{t('reassessment.accuracy')}</strong> {t('reassessment.questions_correct_of', { correct: info.previousAssessment.correctAnswers ?? 0, total: info.previousAssessment.totalQuestions ?? 0 })}</div>
+                <div><strong>{t('reassessment.attempt_ref')}</strong> <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{String(info.previousAssessment.id || '').substring(0, 8)}...</code></div>
               </div>
             </div>
           ) : (
@@ -164,7 +173,7 @@ export default function Reassessment() {
             <li><span>{t('reassessment.total_q')}</span> <strong>{info?.totalQuestions || 6} {t('Questions')}</strong></li>
             <li><span>{t('reassessment.est_time')}</span> <strong>~{Math.round(info?.estimatedTime || 10)} {t('minutes')}</strong></li>
             <li><span>{t('Assessment Details')}:</span> <strong style={{ color: '#15803d' }}>{t('reassessment.calibrated_gaps')}</strong></li>
-            <li><span>{t('reassessment.target_cadre')}</span> <strong>{info?.designationName}</strong></li>
+            <li><span>{t('reassessment.target_cadre')}</span> <strong>{safeText(info?.designationName, '—')}</strong></li>
             <li><span>{t('reassessment.xp_bonus')}</span> <strong style={{ color: '#ff9933' }}>+150 XP</strong></li>
           </ul>
         </div>
@@ -183,8 +192,10 @@ export default function Reassessment() {
         {info?.skillGaps && info.skillGaps.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
             {info.skillGaps.map((g) => {
-              const isMet = g.assessedScore >= g.requiredScore
-              const gapVal = Math.max(0, g.requiredScore - g.assessedScore)
+              const assessed = Number(g.assessedScore ?? 0)
+              const required = Number(g.requiredScore ?? 80)
+              const isMet = assessed >= required
+              const gapVal = Math.max(0, required - assessed)
               const statusClass = isMet ? 'low' : gapVal <= 15 ? 'medium' : 'high'
               const badgeText = isMet ? t('reassessment.benchmark_met') : gapVal <= 15 ? t('reassessment.needs_improvement') : t('reassessment.priority_gap')
 
@@ -199,26 +210,26 @@ export default function Reassessment() {
                     </span>
                   </div>
 
-                  <h4 className="gap-skill-title">{g.skillName}</h4>
+                  <h4 className="gap-skill-title">{safeText(g.skillName, 'Skill')}</h4>
 
                   <div className="gap-comparison-row">
                     <div className="gap-metric">
                       <span className="gap-metric-label">{t('reassessment.prev_score')}</span>
-                      <strong className="gap-metric-val current">{g.assessedScore}%</strong>
+                      <strong className="gap-metric-val current">{Math.round(assessed)}%</strong>
                     </div>
                     <div className="gap-arrow">➔</div>
                     <div className="gap-metric">
                       <span className="gap-metric-label">{t('reassessment.req_std')}</span>
-                      <strong className="gap-metric-val target">{g.requiredScore}%</strong>
+                      <strong className="gap-metric-val target">{Math.round(required)}%</strong>
                     </div>
                   </div>
 
                   {/* Visual gauge */}
                   <div className="skill-progress-track">
-                    <div className="benchmark-marker" style={{ left: `${g.requiredScore}%` }} />
+                    <div className="benchmark-marker" style={{ left: `${required}%` }} />
                     <div 
                       className={`skill-progress-fill fill-${statusClass}`} 
-                      style={{ width: `${Math.min(100, g.assessedScore)}%` }} 
+                      style={{ width: `${Math.min(100, assessed)}%` }} 
                     />
                   </div>
                 </div>
@@ -251,9 +262,9 @@ export default function Reassessment() {
                     <span className="course-platform-badge">🏛️ iGOT Module</span>
                     <span className="course-xp-pill">+100 XP</span>
                   </div>
-                  <h4 className="course-title-v2">{c.title}</h4>
-                  <div className="course-provider-v2">🏫 {c.provider}</div>
-                  <span className="course-skill-pill">{t('igot.competency_prefix', { skill: c.skillName })}</span>
+                  <h4 className="course-title-v2">{safeText(c.title, 'Course')}</h4>
+                  <div className="course-provider-v2">🏫 {safeText(c.provider, 'iGOT')}</div>
+                  <span className="course-skill-pill">{t('igot.competency_prefix', { skill: safeText(c.skillName, '') })}</span>
                 </div>
               </div>
             ))}
