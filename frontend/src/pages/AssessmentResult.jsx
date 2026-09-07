@@ -24,7 +24,6 @@ export default function AssessmentResult() {
   const { assessmentId } = useParams()
   const { t } = useTranslation()
 
-
   const [result, setResult] = useState(null)
   const [skillGaps, setSkillGaps] = useState([])
   const [comparison, setComparison] = useState(null)
@@ -34,8 +33,11 @@ export default function AssessmentResult() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let isMounted = true
+
     const fetchResults = async () => {
       setLoading(true)
+      setError('')
       try {
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
@@ -45,46 +47,86 @@ export default function AssessmentResult() {
           headers: { Authorization: `Bearer ${token}` }
         })
         const resData = await resResponse.json()
-        if (!resData.success) throw new Error(resData.message)
-        setResult(resData.result)
-
-        // 2. Fetch skill gaps
-        const gapResponse = await fetch(`${BACKEND_URL}/api/skill-gap/latest`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const gapData = await gapResponse.json()
-        if (gapData.success) setSkillGaps(gapData.skillGaps || [])
-
-        // 3. Fetch latest comparison
-        const compResponse = await fetch(`${BACKEND_URL}/api/assessment/latest-comparison`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const compData = await compResponse.json()
-        if (compData.success && compData.hasComparison) {
-            if (compData.current.id === assessmentId && compData.previous.id !== assessmentId) {
-                setComparison(compData)
-            }
+        if (!resData.success) throw new Error(resData.message || 'Failed to load assessment result')
+        if (isMounted) {
+          setResult(resData.result || null)
         }
 
-        // 4. Fetch recommended courses based on gaps
-        const recResponse = await fetch(`${BACKEND_URL}/api/recommendations/user`, {
-           headers: { Authorization: `Bearer ${token}` }
-        })
-        if (recResponse.ok && recResponse.headers.get('content-type')?.includes('application/json')) {
-           const recData = await recResponse.json()
-           if (recData.success) {
-              setCourses(recData.recommendations || [])
-           }
+        // 2. Fetch skill gaps (safe fallback)
+        try {
+          const gapResponse = await fetch(`${BACKEND_URL}/api/skill-gap/latest`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          const gapData = await gapResponse.json()
+          if (isMounted && gapData.success && Array.isArray(gapData.skillGaps)) {
+            setSkillGaps(gapData.skillGaps)
+          }
+        } catch (gapErr) {
+          console.warn('Skill gaps fetch warning:', gapErr)
+        }
+
+        // 3. Fetch latest comparison (safe fallback)
+        try {
+          const compResponse = await fetch(`${BACKEND_URL}/api/assessment/latest-comparison`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          const compData = await compResponse.json()
+          if (isMounted && compData.success && compData.hasComparison && compData.current && compData.previous) {
+            if (compData.current.id === assessmentId && compData.previous.id !== assessmentId) {
+              setComparison({
+                current: {
+                  id: compData.current.id,
+                  overall: Number(compData.current.overall || 0),
+                  scores: Array.isArray(compData.current.scores) ? compData.current.scores : []
+                },
+                previous: {
+                  id: compData.previous.id,
+                  overall: Number(compData.previous.overall || 0),
+                  scores: Array.isArray(compData.previous.scores) ? compData.previous.scores : []
+                }
+              })
+            }
+          }
+        } catch (compErr) {
+          console.warn('Comparison fetch warning:', compErr)
+        }
+
+        // 4. Fetch recommended courses based on gaps (safe fallback)
+        try {
+          const recResponse = await fetch(`${BACKEND_URL}/api/recommendations/user`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (recResponse.ok && recResponse.headers.get('content-type')?.includes('application/json')) {
+            const recData = await recResponse.json()
+            if (isMounted && recData.success && Array.isArray(recData.recommendations)) {
+              setCourses(recData.recommendations)
+            }
+          }
+        } catch (recErr) {
+          console.warn('Recommendations fetch warning:', recErr)
         }
 
       } catch (err) {
-        setError(err.message || 'Error loading results.')
+        if (isMounted) {
+          setError(err.message || 'Error loading assessment results.')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    if (assessmentId) fetchResults()
+    if (assessmentId) {
+      fetchResults()
+    } else {
+      setError('Invalid assessment ID.')
+      setLoading(false)
+    }
+
+    return () => {
+      isMounted = false
+    }
   }, [assessmentId])
 
   // Calculate XP and level
@@ -96,13 +138,49 @@ export default function AssessmentResult() {
     return calculateLevel(earnedXp)
   }, [earnedXp])
 
-  if (loading) return <LoadingScreen message="Calculating adaptive skill-wise scores & AI analysis..." />
-  if (error || !result) return <div className="alert alert-error" style={{ maxWidth: '900px', margin: '30px auto' }}>{error || 'No assessment data.'}</div>
+  if (loading) {
+    return <LoadingScreen message="Calculating adaptive skill-wise scores & AI analysis..." />
+  }
 
-  const { overallScore, totalQuestions, correctAnswers, skillScores } = result
-  const roundedOverall = Math.round(overallScore || 0)
+  if (error || !result) {
+    return (
+      <div className="result-page" style={{ maxWidth: '900px', margin: '40px auto', padding: '0 20px' }}>
+        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
+          <strong>Notice:</strong> {error || 'No assessment data available for this session.'}
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <Link to="/assessment" className="btn btn-primary">
+            Take Assessment
+          </Link>
+          <Link to="/dashboard" className="btn btn-outline">
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const { overallScore = 0, totalQuestions = 0, correctAnswers = 0, skillScores = [] } = result
+  const safeSkillScores = Array.isArray(skillScores) ? skillScores : []
+  const safeSkillGaps = Array.isArray(skillGaps) ? skillGaps : []
+  const safeCourses = Array.isArray(courses) ? courses : []
+
+  const roundedOverall = Math.round(Number(overallScore) || 0)
   const animatedOverall = useCountUp(roundedOverall, 1200)
-  const animatedEarnedXp = useCountUp(earnedXp, 1000)
+  const animatedEarnedXp = useCountUp(earnedXp || 0, 1000)
+
+  // Safe comparison data calculations
+  const hasValidComparison = Boolean(
+    comparison &&
+    comparison.current &&
+    comparison.previous &&
+    Array.isArray(comparison.current.scores) &&
+    comparison.current.scores.length > 0
+  )
+
+  const currentOverall = comparison ? Math.round(Number(comparison.current?.overall || 0)) : 0
+  const previousOverall = comparison ? Math.round(Number(comparison.previous?.overall || 0)) : 0
+  const overallDiff = currentOverall - previousOverall
 
   return (
     <div className="result-page">
@@ -135,7 +213,6 @@ export default function AssessmentResult() {
             </div>
           </div>
 
-
           <div className="result-meta-info">
             <h2>Overall Competency Rating</h2>
             <p>
@@ -156,35 +233,36 @@ export default function AssessmentResult() {
           </div>
           <div style={{ borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '14px', marginLeft: '4px' }}>
             <span style={{ fontSize: '11px', color: '#cbd5e1', display: 'block' }}>Current Tier</span>
-            <strong style={{ color: '#ffffff', fontSize: '13px' }}>Lvl {levelProgress.level} · {levelProgress.title}</strong>
+            <strong style={{ color: '#ffffff', fontSize: '13px' }}>
+              Lvl {levelProgress?.level || 1} · {levelProgress?.title || 'Probationer'}
+            </strong>
           </div>
         </div>
-
       </div>
 
-      {/* Historical Comparison Table (if reassessment) */}
-      {comparison && (
+      {/* Historical Comparison Table (if reassessment with valid comparison) */}
+      {hasValidComparison && (
         <div className="card comparison-card">
           <div className="card-header-clean">
             <div className="header-title-group">
               <span className="section-pill">Reassessment Delta</span>
               <h3 className="section-heading">{t('result.historical_progression')}</h3>
             </div>
-            <span className={`delta-badge ${comparison.current.overall >= comparison.previous.overall ? 'delta-pos' : 'delta-neg'}`}>
-              {comparison.current.overall >= comparison.previous.overall ? (
+            <span className={`delta-badge ${overallDiff >= 0 ? 'delta-pos' : 'delta-neg'}`}>
+              {overallDiff >= 0 ? (
                 <>
-                  <TrendingUp size={14} /> +{Math.round(comparison.current.overall - comparison.previous.overall)}% {t('result.improvement')}
+                  <TrendingUp size={14} /> +{overallDiff}% {t('result.improvement')}
                 </>
               ) : (
                 <>
-                  <TrendingDown size={14} /> {Math.round(comparison.current.overall - comparison.previous.overall)}% {t('result.decline')}
+                  <TrendingDown size={14} /> {overallDiff}% {t('result.decline')}
                 </>
               )}
             </span>
           </div>
 
           <p style={{ color: '#64748b', fontSize: '13.5px', margin: '0 0 12px' }}>
-            {t('result.previous_attempt')}: <strong>{Math.round(comparison.previous.overall)}%</strong> &rarr; {t('result.current_attempt')}: <strong>{Math.round(comparison.current.overall)}%</strong>
+            {t('result.previous_attempt')}: <strong>{previousOverall}%</strong> &rarr; {t('result.current_attempt')}: <strong>{currentOverall}%</strong>
           </p>
 
           <div className="comparison-table-wrapper">
@@ -199,23 +277,24 @@ export default function AssessmentResult() {
                 </tr>
               </thead>
               <tbody>
-                {comparison.current.scores.map(curr => {
-                  const prev = comparison.previous.scores.find(p => p.skill_id === curr.skill_id);
-                  const pScore = prev ? Number(prev.score_percentage) : 0;
-                  const cScore = Number(curr.score_percentage);
-                  const change = cScore - pScore;
+                {(comparison.current.scores || []).map((curr) => {
+                  const previousScoresList = Array.isArray(comparison.previous?.scores) ? comparison.previous.scores : []
+                  const prev = previousScoresList.find((p) => p && p.skill_id === curr.skill_id)
+                  const pScore = prev ? Number(prev.score_percentage || 0) : 0
+                  const cScore = Number(curr.score_percentage || 0)
+                  const change = Math.round(cScore - pScore)
                   
-                  const skillNameObj = skillScores?.find(s => s.skillId === curr.skill_id);
-                  const name = skillNameObj ? skillNameObj.skillName : 'Statistical Competency';
+                  const skillNameObj = safeSkillScores.find((s) => s.skillId === curr.skill_id)
+                  const name = skillNameObj ? skillNameObj.skillName : 'Statistical Competency'
 
                   return (
-                    <tr key={curr.skill_id}>
+                    <tr key={curr.skill_id || Math.random()}>
                       <td style={{ fontWeight: '600' }}>{name}</td>
                       <td>{Math.round(pScore)}%</td>
                       <td style={{ fontWeight: '700' }}>{Math.round(cScore)}%</td>
                       <td>
                         <span className={`delta-badge ${change > 0 ? 'delta-pos' : change < 0 ? 'delta-neg' : 'delta-neutral'}`}>
-                          {change > 0 ? `+${Math.round(change)}%` : change < 0 ? `${Math.round(change)}%` : '0%'}
+                          {change > 0 ? `+${change}%` : change < 0 ? `${change}%` : '0%'}
                         </span>
                       </td>
                       <td>
@@ -241,13 +320,13 @@ export default function AssessmentResult() {
           </div>
         </div>
 
-        {skillScores && skillScores.length > 0 ? (
+        {safeSkillScores.length > 0 ? (
           <div style={{ marginTop: '14px' }}>
-            {skillScores.map((ss) => (
+            {safeSkillScores.map((ss) => (
               <SkillScoreBar 
-                key={ss.skillId}
-                skillName={ss.skillName}
-                percentage={ss.percentage}
+                key={ss.skillId || ss.skillName}
+                skillName={ss.skillName || 'Skill'}
+                percentage={ss.percentage || 0}
                 questionsCount={ss.questionsCount}
                 correctCount={ss.correctCount}
                 benchmark={80}
@@ -266,16 +345,18 @@ export default function AssessmentResult() {
             <span className="section-pill warning">Priority Action</span>
             <h3 className="section-heading">{t('result.skill_gap_analysis')}</h3>
           </div>
-          <span style={{ fontSize: '13px', color: '#64748b' }}>{skillGaps.length} Target Gaps Identified</span>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>{safeSkillGaps.length} Target Gaps Identified</span>
         </div>
 
-        {skillGaps.length === 0 ? (
+        {safeSkillGaps.length === 0 ? (
           <p style={{ color: '#15803d', fontWeight: '600' }}>✓ {t('result.no_gaps')}</p>
         ) : (
           <div className="gaps-list" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
-            {skillGaps.map(gap => {
-              const gapVal = Math.max(0, gap.requiredScore - gap.assessedScore);
-              const isMet = gap.assessedScore >= gap.requiredScore;
+            {safeSkillGaps.map((gap) => {
+              const assessed = Number(gap.assessedScore ?? 0)
+              const required = Number(gap.requiredScore ?? 80)
+              const gapVal = Math.max(0, Math.round(required - assessed))
+              const isMet = assessed >= required
               
               let statusClass = 'high'
               let statusText = t('result.high_priority')
@@ -288,7 +369,7 @@ export default function AssessmentResult() {
               }
 
               return (
-                <div key={gap.id} className="gap-card" style={{ margin: 0 }}>
+                <div key={gap.id || gap.skillId || Math.random()} className="gap-card" style={{ margin: 0 }}>
                   <div className="gap-card-top">
                     <span className={`gap-priority-pill priority-${statusClass}`}>
                       {statusText}
@@ -298,17 +379,17 @@ export default function AssessmentResult() {
                     </span>
                   </div>
 
-                  <h4 className="gap-skill-title">{gap.skillName}</h4>
+                  <h4 className="gap-skill-title">{gap.skillName || 'Competency Skill'}</h4>
 
                   <div className="gap-comparison-row">
                     <div className="gap-metric">
                       <span className="gap-metric-label">{t('result.current')}</span>
-                      <strong className="gap-metric-val current">{gap.assessedScore}%</strong>
+                      <strong className="gap-metric-val current">{Math.round(assessed)}%</strong>
                     </div>
                     <div className="gap-arrow" aria-hidden="true">➔</div>
                     <div className="gap-metric">
                       <span className="gap-metric-label">{t('result.required')}</span>
-                      <strong className="gap-metric-val target">{gap.requiredScore}%</strong>
+                      <strong className="gap-metric-val target">{Math.round(required)}%</strong>
                     </div>
                   </div>
                 </div>
@@ -330,20 +411,20 @@ export default function AssessmentResult() {
           </Link>
         </div>
 
-        {courses.length === 0 ? (
+        {safeCourses.length === 0 ? (
           <p style={{ color: '#15803d', fontWeight: '600' }}>✓ {t('result.all_met')}</p>
         ) : (
           <div className="courses-grid-3col" style={{ marginTop: '16px', marginBottom: 0 }}>
-            {courses.slice(0, 3).map((rec) => (
-              <div key={rec.id} className="course-card-v2">
+            {safeCourses.slice(0, 3).map((rec) => (
+              <div key={rec.id || rec.courseId || Math.random()} className="course-card-v2">
                 <div>
                   <div className="course-card-top">
                     <span className="course-platform-badge">🏛️ iGOT Karmayogi</span>
                     <span className="course-xp-pill">+100 XP</span>
                   </div>
-                  <h4 className="course-title-v2">{rec.title}</h4>
-                  <div className="course-provider-v2">🏫 {rec.provider}</div>
-                  <p className="course-desc-v2">💡 {rec.reason}</p>
+                  <h4 className="course-title-v2">{rec.title || 'Official Skill Module'}</h4>
+                  <div className="course-provider-v2">🏫 {rec.provider || 'iGOT Karmayogi'}</div>
+                  <p className="course-desc-v2">💡 {rec.reason || 'Recommended based on skill analysis'}</p>
                 </div>
                 <div>
                   <a

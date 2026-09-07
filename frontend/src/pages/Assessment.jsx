@@ -39,6 +39,7 @@ export default function Assessment() {
   
   // UI status
   const [loadingAction, setLoadingAction] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   // 1. Fetch info function
@@ -65,7 +66,9 @@ export default function Assessment() {
   // 2. Finalize Assessment function
   const handleSubmitAssessment = useCallback(async (id) => {
     try {
+      setIsSubmitting(true)
       setLoadingAction(true)
+      setError('')
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${BACKEND_URL}/api/assessment/${id}/submit`, {
         method: 'POST',
@@ -85,8 +88,10 @@ export default function Assessment() {
       
       navigate(`/assessment/result/${id}`, { replace: true })
     } catch (err) {
+      console.error('Submit error:', err)
       setError(err.message || t('Error submitting final assessment'))
       setLoadingAction(false)
+      setIsSubmitting(false)
     }
   }, [navigate, t])
 
@@ -100,7 +105,7 @@ export default function Assessment() {
         headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       const data = await res.json()
-      if (!data.success) throw new Error(data.message)
+      if (!data.success) throw new Error(data.message || 'Failed to fetch question')
       
       if (data.complete) {
          await handleSubmitAssessment(id)
@@ -297,11 +302,51 @@ export default function Assessment() {
   }
 
   // ACTIVE ASSESSMENT SCREEN
-  if (loadingAction && !currentQuestion) {
-     return <LoadingScreen message={t('Generating next adaptive question...')} />
+  if (isSubmitting) {
+    return <LoadingScreen message={t('Calculating scores, analyzing competency & skill gaps...')} />
   }
 
-  if (!currentQuestion) return null;
+  if (loadingAction && !currentQuestion) {
+    return <LoadingScreen message={t('Generating next adaptive question...')} />
+  }
+
+  if (!currentQuestion) {
+    return (
+      <div className="assessment-page" style={{ maxWidth: '860px', margin: '40px auto', padding: '0 20px' }}>
+        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
+          <strong>Notice:</strong> {error || t('No active question found. Please retry or return to dashboard.')}
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {assessmentId ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => fetchNextQuestion(assessmentId)}
+              disabled={loadingAction}
+            >
+              {loadingAction ? t('Loading...') : t('Retry Question')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handleStart('initial')}
+              disabled={loadingAction}
+            >
+              {t('Start Assessment')}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => navigate('/dashboard')}
+          >
+            {t('dashboard.overview')}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const progressPct = Math.round(((currentIndex) / totalQuestions) * 100)
 

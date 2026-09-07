@@ -439,12 +439,21 @@ app.get('/api/assessment/latest-comparison', authenticateUser, async (req, res) 
       const { data: previousScores } = await supabase.from('assessment_skill_scores').select('skill_id, score_percentage').eq('assessment_id', previous.id);
       
       res.json({
-         success: true, hasComparison: true,
-         current: { id: current.id, overall: current.score_percentage, scores: currentScores },
-         previous: { id: previous.id, overall: previous.score_percentage, scores: previousScores }
+         success: true, 
+         hasComparison: true,
+         current: { 
+           id: current.id, 
+           overall: Number(current.score_percentage || 0), 
+           scores: Array.isArray(currentScores) ? currentScores : [] 
+         },
+         previous: { 
+           id: previous.id, 
+           overall: Number(previous.score_percentage || 0), 
+           scores: Array.isArray(previousScores) ? previousScores : [] 
+         }
       });
    } catch(err) {
-      res.status(500).json({ success: false, message: err.message });
+      res.status(500).json({ success: false, message: err.message, hasComparison: false });
    }
 });
 
@@ -1651,7 +1660,8 @@ app.post('/api/auth/register-user', async (req, res) => {
       targetDesigId = desigData?.id || 'd47400e0-c13a-4b26-b0d2-78e460ca56e3';
     }
 
-    const { data: existingProfile } = await supabase
+    // 2a. Check if profile already linked to this user_id
+    let { data: existingProfile } = await supabase
       .from('employee_profiles')
       .select('id')
       .eq('user_id', userId)
@@ -1659,34 +1669,75 @@ app.post('/api/auth/register-user', async (req, res) => {
 
     let profileId = existingProfile?.id;
 
-    if (!existingProfile) {
+    // 2b. If not linked by user_id, check if an unlinked Civil List profile matches this employee_id
+    if (!profileId && cleanEmpId) {
+      const { data: unlinkedMatch } = await supabase
+        .from('employee_profiles')
+        .select('id')
+        .eq('employee_id', cleanEmpId)
+        .is('user_id', null)
+        .maybeSingle();
+
+      if (unlinkedMatch) {
+        profileId = unlinkedMatch.id;
+        await supabase
+          .from('employee_profiles')
+          .update({
+            user_id: userId,
+            name: cleanName,
+            designation_id: targetDesigId,
+            department: department || 'National Statistical Office (NSO)',
+            experience_years: Number(experienceYears) || 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', profileId);
+      }
+    }
+
+    // 2c. If still no profile, insert a new one
+    if (!profileId) {
+      // Check if employee_id is already used by another user
+      let finalEmpId = cleanEmpId;
+      const { data: empIdTaken } = await supabase
+        .from('employee_profiles')
+        .select('id')
+        .eq('employee_id', cleanEmpId)
+        .maybeSingle();
+
+      if (empIdTaken) {
+        finalEmpId = `MOSPI-${userId.slice(0, 8)}`;
+      }
+
       const { data: newProfile, error: profileErr } = await supabase
         .from('employee_profiles')
         .insert({
           user_id: userId,
           name: cleanName,
-          employee_id: cleanEmpId,
+          employee_id: finalEmpId,
           designation_id: targetDesigId,
           department: department || 'National Statistical Office (NSO)',
-          experience_years: Number(experienceYears) || 0
+          experience_years: Number(experienceYears) || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select('id')
         .single();
 
       if (profileErr) {
-        console.error('Profile creation warning:', profileErr.message);
+        console.error('Profile creation error:', profileErr.message);
       } else {
         profileId = newProfile.id;
       }
     } else {
+      // Update existing linked profile
       await supabase
         .from('employee_profiles')
         .update({
           name: cleanName,
-          employee_id: cleanEmpId,
           designation_id: targetDesigId,
-          department: department,
-          experience_years: Number(experienceYears) || 0
+          department: department || 'National Statistical Office (NSO)',
+          experience_years: Number(experienceYears) || 0,
+          updated_at: new Date().toISOString()
         })
         .eq('id', profileId);
     }
@@ -1695,7 +1746,7 @@ app.post('/api/auth/register-user', async (req, res) => {
     if (profileId && Array.isArray(skillIds) && skillIds.length > 0) {
       await supabase.from('employee_skills').delete().eq('employee_profile_id', profileId);
       const skillRows = skillIds.map(sId => ({ employee_profile_id: profileId, skill_id: sId }));
-      await supabase.from('employee_skills').insert(skillRows);
+      await supabase.from('employee_skills').insert(skillRows).catch(console.warn);
     }
 
     return res.json({
@@ -1715,27 +1766,39 @@ app.post('/api/auth/register-user', async (req, res) => {
 
 app.get('/api/arena/leaderboard', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data: profiles, error } = await supabase
       .from('arena_profiles')
-      .select('user_id, arena_points, wins, current_streak, best_streak, employee_profiles(name)')
-      .gt('arena_points', 0)
+      .select('user_id, arena_points, arena_rating, wins, losses, draws, current_streak, best_streak, total_matches')
       .order('arena_points', { ascending: false })
       .order('wins', { ascending: false })
       .order('best_streak', { ascending: false })
       .limit(20);
 
     if (error) throw error;
-    
-    const ranked = data.map((p, index) => ({
+
+    if (!profiles || profiles.length === 0) {
+      return res.json([]);
+    }
+
+    const userIds = profiles.map(p => p.user_id).filter(Boolean);
+    const { data: empProfiles } = await supabase
+      .from('employee_profiles')
+      .select('user_id, name')
+      .in('user_id', userIds);
+
+    const empMap = new Map((empProfiles || []).map(e => [e.user_id, e.name]));
+
+    const ranked = profiles.map((p, index) => ({
       userId: p.user_id,
-      name: p.employee_profiles?.name || 'Unknown Officer',
-      points: p.arena_points,
-      wins: p.wins,
-      streak: p.current_streak,
-      bestStreak: p.best_streak,
+      name: empMap.get(p.user_id) || 'Statistical Officer',
+      points: Math.max(0, Number(p.arena_points) || 0),
+      wins: Number(p.wins) || 0,
+      streak: Number(p.current_streak) || 0,
+      bestStreak: Number(p.best_streak) || 0,
+      rating: Number(p.arena_rating) || 1200,
       rank: index + 1
     }));
-    
+
     res.json(ranked);
   } catch (err) {
     console.error('Leaderboard fetch error:', err);
@@ -1746,8 +1809,8 @@ app.get('/api/arena/leaderboard', authenticateUser, async (req, res) => {
 app.get('/api/arena/history', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    // Fetch last 5 matches for this user
-    const { data, error } = await supabase
+    // Fetch last 5 completed matches for this user
+    const { data: matches, error } = await supabase
       .from('arena_matches')
       .select(`
         id,
@@ -1758,45 +1821,61 @@ app.get('/api/arena/history', authenticateUser, async (req, res) => {
         winner_id,
         started_at,
         ended_at,
+        created_at,
         player1_id,
         player2_id
       `)
       .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
       .eq('status', 'COMPLETED')
-      .order('ended_at', { ascending: false })
+      .order('ended_at', { ascending: false, nullsFirst: false })
       .limit(5);
 
     if (error) throw error;
 
-    // Fetch opponent names
-    const history = await Promise.all(data.map(async (m) => {
+    if (!matches || matches.length === 0) {
+      return res.json({ success: true, history: [] });
+    }
+
+    // Collect opponent user_ids
+    const opponentIds = matches
+      .map(m => (m.player1_id === userId ? m.player2_id : m.player1_id))
+      .filter(id => id && !String(id).startsWith('ai_'));
+
+    let empMap = new Map();
+    if (opponentIds.length > 0) {
+      const { data: empProfiles } = await supabase
+        .from('employee_profiles')
+        .select('user_id, name')
+        .in('user_id', opponentIds);
+      if (empProfiles) {
+        empMap = new Map(empProfiles.map(e => [e.user_id, e.name]));
+      }
+    }
+
+    const history = matches.map((m) => {
+      const isP1 = m.player1_id === userId;
       let isWin = false;
       let isDraw = m.result === 'DRAW';
       if (!isDraw) {
-        isWin = m.winner_id === userId;
-      }
-      
-      let opponentId = m.player1_id === userId ? m.player2_id : m.player1_id;
-      let opponentName = 'Arena AI';
-      
-      if (m.mode === 'HUMAN' && opponentId) {
-        const { data: oppProf } = await supabase
-          .from('employee_profiles')
-          .select('name')
-          .eq('user_id', opponentId)
-          .maybeSingle();
-        if (oppProf && oppProf.name) {
-          opponentName = oppProf.name;
-        } else {
-          opponentName = 'Colleague';
+        if (m.winner_id) {
+          isWin = m.winner_id === userId;
+        } else if (m.result === 'PLAYER1_WIN') {
+          isWin = isP1;
+        } else if (m.result === 'PLAYER2_WIN') {
+          isWin = !isP1;
         }
       }
 
-      const myScore = m.player1_id === userId ? m.player1_score : m.player2_score;
-      const oppScore = m.player1_id === userId ? m.player2_score : m.player1_score;
+      const opponentId = isP1 ? m.player2_id : m.player1_id;
+      let opponentName = 'Arena AI';
+      if (m.mode === 'HUMAN') {
+        opponentName = (opponentId && empMap.get(opponentId)) || 'Colleague';
+      }
+
+      const myScore = isP1 ? (m.player1_score || 0) : (m.player2_score || 0);
+      const oppScore = isP1 ? (m.player2_score || 0) : (m.player1_score || 0);
 
       // AP gained/lost
-      // According to logic: win = +50 (Human) / +10 (AI), loss = -30 (Human) / -10 (AI), draw = 0
       let apChange = 0;
       if (m.mode === 'AI') {
         if (isWin) apChange = 10;
@@ -1815,9 +1894,9 @@ app.get('/api/arena/history', authenticateUser, async (req, res) => {
         myScore,
         oppScore,
         apChange,
-        date: m.ended_at || m.started_at
+        date: m.ended_at || m.started_at || m.created_at
       };
-    }));
+    });
 
     res.json({ success: true, history });
   } catch (err) {
@@ -1829,25 +1908,60 @@ app.get('/api/arena/history', authenticateUser, async (req, res) => {
 app.get('/api/arena/profile', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { data: profile, error } = await supabase
+    let { data: profile } = await supabase
       .from('arena_profiles')
       .select('arena_points, arena_rating, wins, losses, draws, current_streak, best_streak, total_matches')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (!profile) {
+      await supabase.from('arena_profiles').insert({
+        user_id: userId,
+        arena_points: 0,
+        arena_rating: 1200,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        current_streak: 0,
+        best_streak: 0,
+        total_matches: 0,
+        is_available: true
+      }).catch(() => {});
+
+      const { data: createdProfile } = await supabase
+        .from('arena_profiles')
+        .select('arena_points, arena_rating, wins, losses, draws, current_streak, best_streak, total_matches')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      profile = createdProfile || {
+        arena_points: 0,
+        arena_rating: 1200,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        current_streak: 0,
+        best_streak: 0,
+        total_matches: 0
+      };
+    }
 
     // Fetch badges
     const { data: userBadges, error: badgeErr } = await supabase
       .from('user_arena_badges')
       .select('badge_id, awarded_at, arena_badges(*)')
       .eq('user_id', userId);
-    
-    if (badgeErr) throw badgeErr;
 
     res.json({
-      ...profile,
-      badges: userBadges.map(b => b.arena_badges).filter(Boolean)
+      arena_points: Math.max(0, Number(profile.arena_points) || 0),
+      arena_rating: Number(profile.arena_rating) || 1200,
+      wins: Number(profile.wins) || 0,
+      losses: Number(profile.losses) || 0,
+      draws: Number(profile.draws) || 0,
+      current_streak: Number(profile.current_streak) || 0,
+      best_streak: Number(profile.best_streak) || 0,
+      total_matches: Number(profile.total_matches) || 0,
+      badges: (userBadges || []).map(b => b.arena_badges).filter(Boolean)
     });
   } catch (err) {
     console.error('Arena profile error:', err);
