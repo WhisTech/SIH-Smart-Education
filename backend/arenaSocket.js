@@ -225,7 +225,17 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
       attemptMatchmaking(currentUserId);
     });
 
-    // Matchmaking Evaluation
+    // Update location coordinates asynchronously if sent
+    socket.on('arena:update_location', (coords) => {
+      if (!currentUserId || !activePlayers.has(currentUserId)) return;
+      const p = activePlayers.get(currentUserId);
+      if (p) {
+        if (typeof coords?.lat === 'number') p.lat = coords.lat;
+        if (typeof coords?.lng === 'number') p.lng = coords.lng;
+      }
+    });
+
+    // Matchmaking Evaluation - Pairs players with exact same designation automatically
     const attemptMatchmaking = (searcherId) => {
       const searcher = activePlayers.get(searcherId);
       if (!searcher || searcher.status !== 'SEARCHING') return;
@@ -243,8 +253,13 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
         }
 
         // HARD REQUIREMENT: exact same designation (by ID or designation name)
-        const isSameDesig = (searcher.designationId && candidate.designationId && searcher.designationId === candidate.designationId) ||
-                            (searcher.designationName && candidate.designationName && searcher.designationName.toLowerCase() === candidate.designationName.toLowerCase());
+        const sDesigId = searcher.designationId ? String(searcher.designationId).trim() : null;
+        const cDesigId = candidate.designationId ? String(candidate.designationId).trim() : null;
+        const sDesigName = searcher.designationName ? String(searcher.designationName).trim().toLowerCase() : null;
+        const cDesigName = candidate.designationName ? String(candidate.designationName).trim().toLowerCase() : null;
+
+        const isSameDesig = (sDesigId && cDesigId && sDesigId === cDesigId) ||
+                            (sDesigName && cDesigName && sDesigName === cDesigName);
 
         if (isSameDesig) {
           if (searcher.lat && searcher.lng && candidate.lat && candidate.lng) {
@@ -261,63 +276,145 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
       }
 
       if (bestMatchId) {
-        createChallenge(searcherId, bestMatchId);
+        // Atomically lock both players out of searchQueue before starting
+        const p1 = activePlayers.get(searcherId);
+        const p2 = activePlayers.get(bestMatchId);
+        if (p1 && p2 && p1.status === 'SEARCHING' && p2.status === 'SEARCHING') {
+          p1.status = 'IN_MATCH';
+          p2.status = 'IN_MATCH';
+          searchQueue.delete(searcherId);
+          searchQueue.delete(bestMatchId);
+
+          startHumanMatch(searcherId, bestMatchId);
+        }
       }
     };
 
-    // 3. Create Challenge (Atomically lock both players out of searchQueue)
-    const createChallenge = async (p1Id, p2Id) => {
+    // 3. Start Human Match directly (Used by automated matchmaking and accepted challenges)
+    const startHumanMatch = async (p1Id, p2Id) => {
       const p1 = activePlayers.get(p1Id);
       const p2 = activePlayers.get(p2Id);
       if (!p1 || !p2) return;
 
-      // Atomic lock
-      p1.status = 'CHALLENGE_PENDING';
-      p2.status = 'CHALLENGE_PENDING';
+      p1.status = 'IN_MATCH';
+      p2.status = 'IN_MATCH';
       searchQueue.delete(p1Id);
       searchQueue.delete(p2Id);
 
-      const challengeId = `chal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      let matchId = null;
+      try {
+        // 1. Create match record in Supabase
+        const { data: matchRow, error: matchErr } = await supabase
+          .from('arena_matches')
+          .insert({
+            player1_id: p1Id,
+            player2_id: p2Id,
+            mode: 'HUMAN',
+            status: 'IN_PROGRESS',
+            started_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
 
-      const timeoutId = setTimeout(() => {
-        handleChallengeExpiry(challengeId);
-      }, 15000);
-
-      pendingChallenges.set(challengeId, {
-        challengerId: p1Id,
-        targetId: p2Id,
-        timeoutId
-      });
-
-      // Fetch profile details for notifications
-      const { data: p1Profile } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p1Id).maybeSingle();
-      const { data: p2Profile } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p2Id).maybeSingle();
-      const { data: p1Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p1Id).maybeSingle();
-      const { data: p2Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p2Id).maybeSingle();
-
-      // Challenger receives opponent found
-      io.to(`user:${p1Id}`).emit('arena:opponent_found', {
-        challengeId,
-        opponent: {
-          id: p2Id,
-          name: p2Profile?.name || 'Colleague',
-          department: p2Profile?.department || p2Profile?.designations?.name || 'MoSPI',
-          rating: p2Arena?.arena_rating || 1200,
-          points: p2Arena?.arena_points || 0
+        if (matchErr || !matchRow) {
+          throw matchErr || new Error('Could not create match record in database');
         }
-      });
 
-      // Target receives incoming challenge
-      io.to(`user:${p2Id}`).emit('arena:challenge_received', {
-        challengeId,
-        challenger: {
-          id: p1Id,
-          name: p1Profile?.name || 'Colleague',
-          department: p1Profile?.department || p1Profile?.designations?.name || 'MoSPI',
-          rating: p1Arena?.arena_rating || 1200,
-          points: p1Arena?.arena_points || 0
+        matchId = matchRow.id;
+        const roomName = `match_${matchId}`;
+        p1.currentMatchId = matchId;
+        p2.currentMatchId = matchId;
+
+        // 2. Add both players' sockets to the private match room
+        const p1Socket = io.sockets.sockets.get(p1.socketId);
+        const p2Socket = io.sockets.sockets.get(p2.socketId);
+        if (p1Socket) p1Socket.join(roomName);
+        if (p2Socket) p2Socket.join(roomName);
+
+        if (io.in) {
+          try {
+            io.in(`user:${p1Id}`).socketsJoin(roomName);
+            io.in(`user:${p2Id}`).socketsJoin(roomName);
+          } catch (joinErr) {
+            // Sockets joined individually above
+          }
         }
-      });
+
+        // 3. Pre-generate and store all 5 questions
+        const questions = await getOrGenerateMatchQuestions(matchId, p1.designationName || 'Statistical Officer');
+
+        // 4. Initialize in-memory Match State
+        const matchState = {
+          matchId,
+          roomName,
+          mode: 'HUMAN',
+          player1Id: p1Id,
+          player2Id: p2Id,
+          designationName: p1.designationName,
+          questions: questions,
+          currentQuestionIndex: 0,
+          roundStartTime: null,
+          roundTimer: null,
+          roundTransitionTimer: null,
+          answers: {},
+          scores: {
+            [p1Id]: 0,
+            [p2Id]: 0
+          },
+          status: 'PREPARING',
+          readyPlayers: new Set(),
+          disconnectTimers: {}
+        };
+
+        activeMatches.set(matchId, matchState);
+
+        // 5. Fetch profile details for HUD display
+        const { data: p1Prof } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p1Id).maybeSingle();
+        const { data: p2Prof } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p2Id).maybeSingle();
+        const { data: p1Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p1Id).maybeSingle();
+        const { data: p2Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p2Id).maybeSingle();
+
+        const matchPayload = {
+          matchId,
+          roomName,
+          mode: 'HUMAN',
+          player1: {
+            id: p1Id,
+            name: p1Prof?.name || 'Player 1',
+            department: p1Prof?.department || p1Prof?.designations?.name || 'MoSPI Officer',
+            rating: p1Arena?.arena_rating || 1200,
+            points: p1Arena?.arena_points || 0
+          },
+          player2: {
+            id: p2Id,
+            name: p2Prof?.name || 'Player 2',
+            department: p2Prof?.department || p2Prof?.designations?.name || 'MoSPI Officer',
+            rating: p2Arena?.arena_rating || 1200,
+            points: p2Arena?.arena_points || 0
+          },
+          totalQuestions: 5
+        };
+
+        // 6. Notify both players with full match payload
+        io.to(roomName).emit('arena:match_created', matchPayload);
+        io.to(`user:${p1Id}`).emit('arena:match_created', matchPayload);
+        io.to(`user:${p2Id}`).emit('arena:match_created', matchPayload);
+
+        // 7. Start 3.. 2.. 1.. countdown
+        startMatchCountdown(matchState);
+
+      } catch (createErr) {
+        console.error('Error starting human match:', createErr);
+        p1.status = 'ARENA_AVAILABLE';
+        p2.status = 'ARENA_AVAILABLE';
+        p1.currentMatchId = null;
+        p2.currentMatchId = null;
+        if (matchId) {
+          await supabase.from('arena_matches').update({ status: 'CANCELLED' }).eq('id', matchId);
+        }
+        io.to(`user:${p1Id}`).emit('arena:error', { message: 'Could not initialize match questions. Please try again.' });
+        io.to(`user:${p2Id}`).emit('arena:error', { message: 'Could not initialize match questions. Please try again.' });
+      }
     };
 
     const handleChallengeExpiry = (challengeId) => {
@@ -430,99 +527,7 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
       clearTimeout(chal.timeoutId);
       pendingChallenges.delete(challengeId);
 
-      const p1 = activePlayers.get(chal.challengerId);
-      const p2 = activePlayers.get(chal.targetId);
-      if (!p1 || !p2) return;
-
-      p1.status = 'IN_MATCH';
-      p2.status = 'IN_MATCH';
-
-      let matchId = null;
-      try {
-        // Create match in DB
-        const { data: matchRow, error: matchErr } = await supabase
-          .from('arena_matches')
-          .insert({
-            player1_id: chal.challengerId,
-            player2_id: chal.targetId,
-            mode: 'HUMAN',
-            status: 'IN_PROGRESS',
-            started_at: new Date().toISOString()
-          })
-          .select('id')
-          .single();
-
-        if (matchErr || !matchRow) {
-          throw matchErr || new Error('Could not create match in database');
-        }
-
-        matchId = matchRow.id;
-        const roomName = `match_${matchId}`;
-        p1.currentMatchId = matchId;
-        p2.currentMatchId = matchId;
-
-        // Make sockets join private match room
-        const p1Socket = io.sockets.sockets.get(p1.socketId);
-        const p2Socket = io.sockets.sockets.get(p2.socketId);
-        if (p1Socket) p1Socket.join(roomName);
-        if (p2Socket) p2Socket.join(roomName);
-
-        // Pre-generate and store all 5 questions ONCE before battle starts
-        const questions = await getOrGenerateMatchQuestions(matchId, p1.designationName || 'Statistical Officer');
-
-        // Initialize in-memory Match State
-        const matchState = {
-          matchId,
-          roomName,
-          mode: 'HUMAN',
-          player1Id: chal.challengerId,
-          player2Id: chal.targetId,
-          designationName: p1.designationName,
-          questions: questions,
-          currentQuestionIndex: 0,
-          roundStartTime: null,
-          roundTimer: null,
-          roundTransitionTimer: null,
-          answers: {}, // [questionNumber]: { [userId]: { answer, isCorrect, responseTimeMs, points, dbQuestionId } }
-          scores: {
-            [chal.challengerId]: 0,
-            [chal.targetId]: 0
-          },
-          status: 'PREPARING',
-          readyPlayers: new Set(),
-          disconnectTimers: {}
-        };
-
-        activeMatches.set(matchId, matchState);
-
-        // Fetch names for match start
-        const { data: p1Prof } = await supabase.from('employee_profiles').select('name').eq('user_id', chal.challengerId).single();
-        const { data: p2Prof } = await supabase.from('employee_profiles').select('name').eq('user_id', chal.targetId).single();
-
-        io.to(roomName).emit('arena:match_created', {
-          matchId,
-          roomName,
-          mode: 'HUMAN',
-          player1: { id: chal.challengerId, name: p1Prof?.name || 'Player 1' },
-          player2: { id: chal.targetId, name: p2Prof?.name || 'Player 2' },
-          totalQuestions: 5
-        });
-
-        // Trigger synchronized countdown
-        startMatchCountdown(matchState);
-
-      } catch (createErr) {
-        console.error('Error in match preparation:', createErr);
-        p1.status = 'ARENA_AVAILABLE';
-        p2.status = 'ARENA_AVAILABLE';
-        p1.currentMatchId = null;
-        p2.currentMatchId = null;
-        if (matchId) {
-          await supabase.from('arena_matches').update({ status: 'CANCELLED' }).eq('id', matchId);
-        }
-        io.to(`user:${chal.challengerId}`).emit('arena:error', { message: 'Could not initialize match questions. Please try again.' });
-        io.to(`user:${chal.targetId}`).emit('arena:error', { message: 'Could not initialize match questions. Please try again.' });
-      }
+      await startHumanMatch(chal.challengerId, chal.targetId);
     });
 
     // 4b. Start AI Match & Question Preparation

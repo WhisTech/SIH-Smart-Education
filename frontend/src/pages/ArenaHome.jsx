@@ -94,8 +94,9 @@ export default function ArenaHome() {
   const [oppScore, setOppScore] = useState(0)
   const [matchResult, setMatchResult] = useState(null) // { result, winnerId, player1Score, player2Score }
   const [opponentDisconnected, setOpponentDisconnected] = useState(false)
-
   const roundTimerIntervalRef = useRef(null)
+  const isSocketAuthRef = useRef(false)
+  const pendingSearchRef = useRef(null)
 
   // 1. Fetch real arena profile & badges from backend
   const fetchArenaData = useCallback(async () => {
@@ -171,6 +172,16 @@ export default function ArenaHome() {
 
       socketRef.current.on('arena:auth_success', (data) => {
         console.log("Socket authenticated for Arena", data)
+        isSocketAuthRef.current = true
+        if (pendingSearchRef.current) {
+          const { mode, difficulty } = pendingSearchRef.current
+          pendingSearchRef.current = null
+          startMatchmaking(mode, difficulty)
+        }
+      })
+
+      socketRef.current.on('disconnect', () => {
+        isSocketAuthRef.current = false
       })
 
       // When an opponent is found (Challenger side)
@@ -182,7 +193,7 @@ export default function ArenaHome() {
         })
         setOpponent({
           ...data.opponent,
-          avatar: (data.opponent.name || 'O').charAt(0).toUpperCase()
+          avatar: (data.opponent?.name || 'O').charAt(0).toUpperCase()
         })
       })
 
@@ -195,7 +206,7 @@ export default function ArenaHome() {
         })
         setOpponent({
           ...data.challenger,
-          avatar: (data.challenger.name || 'O').charAt(0).toUpperCase()
+          avatar: (data.challenger?.name || 'O').charAt(0).toUpperCase()
         })
       })
 
@@ -243,7 +254,20 @@ export default function ArenaHome() {
             department: 'MoSPI Automated Competency Trainer',
             rating: 1200,
             points: 500,
-            avatar: '🤖'
+            avatar: '🤖',
+            isAI: true
+          })
+        } else {
+          setMatchMode('HUMAN')
+          const oppData = (data.player1?.id === user?.id) ? data.player2 : data.player1
+          setOpponent({
+            id: oppData?.id,
+            name: oppData?.name || 'Colleague',
+            department: oppData?.department || 'MoSPI Officer',
+            rating: oppData?.rating || 1200,
+            points: oppData?.points || 0,
+            avatar: (oppData?.name || 'C').charAt(0).toUpperCase(),
+            isAI: false
           })
         }
 
@@ -401,7 +425,13 @@ export default function ArenaHome() {
     setSentChallenge(null)
     setSearchTimer(0)
     setGameState('SEARCHING')
-    
+
+    // If socket is not ready yet, queue the search to trigger automatically on auth
+    if (!socketRef.current || !socketRef.current.connected || !isSocketAuthRef.current) {
+      pendingSearchRef.current = { mode, difficulty }
+      return
+    }
+
     if (mode === 'AI') {
       setOpponent({
         id: 'ai_bot',
@@ -415,22 +445,21 @@ export default function ArenaHome() {
       // Server-authoritative AI match initialization
       socketRef.current?.emit('arena:start_ai_match', { difficulty })
     } else {
-      // HUMAN MATCHMAKING: Request location & broadcast presence
+      // HUMAN MATCHMAKING: Enter queue immediately with zero blocking latency!
+      socketRef.current?.emit('arena:search', {})
+
+      // Update location asynchronously in the background if granted
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            socketRef.current?.emit('arena:search', {
+            socketRef.current?.emit('arena:update_location', {
               lat: pos.coords.latitude,
               lng: pos.coords.longitude
             })
           },
-          (err) => {
-            socketRef.current?.emit('arena:search', {})
-          },
-          { timeout: 5000 }
+          () => {},
+          { timeout: 3000, maximumAge: 60000 }
         )
-      } else {
-        socketRef.current?.emit('arena:search', {})
       }
     }
   }
@@ -859,10 +888,10 @@ export default function ArenaHome() {
               </div>
 
               <div className="arena-hud-player" style={{ flexDirection: 'row-reverse' }}>
-                <div className="arena-hud-avatar" style={{ background: matchMode === 'AI' ? '#4f46e5' : '#2563eb' }}>{opponent.avatar || '🤖'}</div>
+                <div className="arena-hud-avatar" style={{ background: matchMode === 'AI' ? '#4f46e5' : '#2563eb' }}>{opponent?.avatar || '🤖'}</div>
                 <div style={{ textAlign: 'right' }}>
                   <div className="arena-hud-player-name" style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
-                    {opponent.name}
+                    {opponent?.name || 'Opponent'}
                     {matchMode === 'AI' && (
                       <span style={{ background: '#312e81', color: '#fbbf24', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', border: '1px solid #4338ca', fontWeight: 'bold' }}>
                         AI
