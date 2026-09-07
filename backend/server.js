@@ -1,7 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 const { createClient } = require('@supabase/supabase-js')
-require('dotenv').config()
+const path = require('path')
+require('dotenv').config({ path: path.join(__dirname, '.env') })
 
 const { generateQuizQuestions, generateAssessmentAnalysis } = require('./groqClient')
 const { generateMcqsFromPdf } = require('./geminiClient')
@@ -1424,7 +1425,6 @@ app.post('/api/mcq/generate', (req, res, next) => {
    ========================================================================== */
 
 const fs = require('fs');
-const path = require('path');
 const FusionEngine = require('./research/fusionEngine');
 const MetricsEngine = require('./research/metricsEngine');
 

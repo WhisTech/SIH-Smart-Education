@@ -55,8 +55,8 @@ export default function Assessment() {
       } else {
         setError(data.message)
       }
-    } catch {
-      setError(t('Failed to fetch assessment info.'))
+    } catch (err) {
+      setError(err?.message || t('Failed to fetch assessment info.'))
     } finally {
       setInfoLoading(false)
     }

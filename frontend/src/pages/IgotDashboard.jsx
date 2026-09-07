@@ -19,7 +19,7 @@ import {
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 export default function IgotDashboard() {
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const { t } = useTranslation()
 
   const [designations, setDesignations] = useState([])
@@ -142,7 +142,7 @@ export default function IgotDashboard() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [user?.id])
 
   // Resolve employee's designation name
   const employeeDesignationName = useMemo(() => {

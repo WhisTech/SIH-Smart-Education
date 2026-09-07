@@ -557,6 +557,40 @@
   color: #c7d2fe;
 }
 
+/* Battle Footer & Forfeit Button */
+.arena-battle-footer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 4px;
+}
+
+.arena-forfeit-btn {
+  background: rgba(30, 27, 75, 0.95);
+  border: 1.5px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.arena-forfeit-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+  transform: translateY(-2px);
+}
+
 /* Match Start Countdown Overlay */
 .arena-countdown-overlay {
   position: absolute;

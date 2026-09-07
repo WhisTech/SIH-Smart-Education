@@ -103,15 +103,54 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
 
         currentUserId = user.id;
 
-        // Fetch designation details
+        // Fetch designation details safely with fallback
         const { data: profile } = await supabase
           .from('employee_profiles')
-          .select('designation_id, designations(name)')
+          .select('designation_id, department, designations(name)')
           .eq('user_id', currentUserId)
-          .single();
+          .maybeSingle();
 
-        const designationName = profile?.designations?.name || 'Statistical Officer';
+        let designationName = profile?.designations?.name || null;
         const designationId = profile?.designation_id || null;
+
+        if (!designationName && designationId) {
+          const { data: desigRow } = await supabase
+            .from('designations')
+            .select('name')
+            .eq('id', designationId)
+            .maybeSingle();
+          if (desigRow) designationName = desigRow.name;
+        }
+
+        if (!designationName) {
+          designationName = profile?.department || 'Statistical Officer';
+        }
+
+        // Ensure arena_profiles row exists with default 1200 competitive rating
+        const { data: arenaProf } = await supabase
+          .from('arena_profiles')
+          .select('user_id, arena_rating, arena_points')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+
+        if (!arenaProf) {
+          try {
+            await supabase.from('arena_profiles').insert({
+              user_id: currentUserId,
+              arena_rating: 1200,
+              arena_points: 0,
+              wins: 0,
+              losses: 0,
+              draws: 0,
+              current_streak: 0,
+              best_streak: 0,
+              total_matches: 0,
+              is_available: true
+            });
+          } catch (e) {
+            console.warn('Initial arena profile auto-insert skipped:', e.message);
+          }
+        }
 
         // Check if player was in an active match (reconnection)
         const existingPlayer = activePlayers.get(currentUserId);
@@ -251,10 +290,10 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
       });
 
       // Fetch profile details for notifications
-      const { data: p1Profile } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p1Id).single();
-      const { data: p2Profile } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p2Id).single();
-      const { data: p1Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p1Id).single();
-      const { data: p2Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p2Id).single();
+      const { data: p1Profile } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p1Id).maybeSingle();
+      const { data: p2Profile } = await supabase.from('employee_profiles').select('name, department, designations(name)').eq('user_id', p2Id).maybeSingle();
+      const { data: p1Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p1Id).maybeSingle();
+      const { data: p2Arena } = await supabase.from('arena_profiles').select('arena_rating, arena_points').eq('user_id', p2Id).maybeSingle();
 
       // Challenger receives opponent found
       io.to(`user:${p1Id}`).emit('arena:opponent_found', {

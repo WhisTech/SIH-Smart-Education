@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from 'react-i18next'
@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   RotateCcw,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  HelpCircle
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LoadingScreen from '../components/LoadingScreen'
@@ -31,7 +32,7 @@ import './Arena.css'
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 // Configurable human search window (seconds)
-const HUMAN_MATCHMAKING_SEARCH_TIMEOUT_SECONDS = 40
+const HUMAN_MATCHMAKING_SEARCH_TIMEOUT_SECONDS = 30
 
 export default function ArenaHome() {
   const { user, profile, profileLoading } = useAuth()
@@ -968,10 +969,15 @@ export default function ArenaHome() {
               </div>
             )}
 
-            {/* Footer Action */}
-            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-              <button className="btn btn-outline" style={{ borderColor: 'rgba(255,255,255,0.2)', color: '#c7d2fe' }} onClick={handleReturnToLobby}>
-                <ArrowLeft size={16} style={{ marginRight: '8px' }} /> Forfeit / Return to Lobby
+            {/* Footer Action: Forfeit / Return to Lobby */}
+            <div className="arena-battle-footer">
+              <button 
+                type="button" 
+                className="arena-forfeit-btn" 
+                onClick={handleReturnToLobby}
+                title="Leave this match and return to the Arena Lobby"
+              >
+                <ArrowLeft size={16} /> Forfeit / Return to Lobby
               </button>
             </div>
 
@@ -1119,10 +1125,12 @@ export default function ArenaHome() {
               </div>
               <div className="hero-gamification-widget">
                 <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.1)', padding: '16px 24px', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24' }}>
-                    {arenaStats.points} Points
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24' }}>
+                    <Zap size={22} /> {arenaStats.points} AP
                   </div>
-                  <div style={{ color: '#e0e7ff', marginTop: '4px', fontWeight: '500' }}>Global Rank: {arenaStats.rank}</div>
+                  <div style={{ color: '#e0e7ff', marginTop: '4px', fontWeight: '500', fontSize: '0.9rem' }}>
+                    Competitive Rating: {arenaStats.rating} ELO
+                  </div>
                 </div>
               </div>
             </div>
@@ -1135,17 +1143,24 @@ export default function ArenaHome() {
                 <Target size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-label">Arena Rating</span>
-                <span className="stat-value">{arenaStats.rating}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="stat-label">Arena Rating</span>
+                  <span title="Arena Rating is your competitive Human-vs-Human rating. New players start at 1200." style={{ cursor: 'help', color: '#94a3b8' }}>
+                    <HelpCircle size={14} />
+                  </span>
+                </div>
+                <span className="stat-value">{arenaStats.rating} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>ELO</span></span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>Competitive PvP Rating (Default: 1200)</span>
               </div>
             </div>
             <div className="stat-card modern-stat-card">
-              <div className="stat-icon-box" style={{ background: '#dcfce7', color: '#15803d' }}>
-                <Trophy size={20} />
+              <div className="stat-icon-box" style={{ background: '#e0e7ff', color: '#4338ca' }}>
+                <Zap size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-label">Wins / Losses / Draws</span>
-                <span className="stat-value">{arenaStats.wins} / {arenaStats.losses} / {arenaStats.draws}</span>
+                <span className="stat-label">Arena Points (AP)</span>
+                <span className="stat-value">{arenaStats.points} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>AP</span></span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>Progression & Leaderboard Points</span>
               </div>
             </div>
             <div className="stat-card modern-stat-card">
@@ -1153,8 +1168,9 @@ export default function ArenaHome() {
                 <Flame size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-label">Win Streak</span>
-                <span className="stat-value" style={{ color: '#ef4444' }}>{arenaStats.streak} 🔥</span>
+                <span className="stat-label">Combat Record (W / L / D)</span>
+                <span className="stat-value">{arenaStats.wins}W - {arenaStats.losses}L - {arenaStats.draws}D</span>
+                <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '2px', display: 'block', fontWeight: '600' }}>Streak: {arenaStats.streak} 🔥</span>
               </div>
             </div>
           </div>
