@@ -1,0 +1,879 @@
+/* ==========================================================================
+   Skill Arena - Game-Like Visual System & Matchmaking Theme
+   ========================================================================== */
+
+/* ---------- Container & Layouts ---------- */
+.arena-fullscreen-container {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 70%, #020617 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 32px 20px;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6), 0 20px 40px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.arena-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ---------- Header & Top HUD ---------- */
+.arena-hud-header {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.arena-hud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #c7d2fe;
+  backdrop-filter: blur(8px);
+}
+
+.arena-hud-live-tag {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: arenaBlink 1.5s infinite;
+}
+
+@keyframes arenaBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.85); }
+}
+
+/* ---------- Matchmaking Radar & Search Stage ---------- */
+.arena-search-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  z-index: 5;
+}
+
+.arena-matchmaking-duo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+/* Player Cards in Search / VS Stage */
+.arena-player-card {
+  flex: 1;
+  max-width: 320px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-radius: 20px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  backdrop-filter: blur(12px);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.arena-player-card.red-side {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.15), inset 0 0 20px rgba(239, 68, 68, 0.05);
+}
+
+.arena-player-card.blue-side {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.15), inset 0 0 20px rgba(59, 130, 246, 0.05);
+}
+
+.arena-player-avatar-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.arena-player-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  border: 3px solid #818cf8;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.arena-player-card.red-side .arena-player-avatar {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  border-color: #fca5a5;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+.arena-player-card.blue-side .arena-player-avatar {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  border-color: #93c5fd;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.arena-avatar-pulse-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px dashed rgba(129, 140, 248, 0.5);
+  animation: arenaRotate 10s linear infinite;
+}
+
+@keyframes arenaRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.arena-player-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.arena-player-desig {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 14px;
+}
+
+.arena-player-stats-row {
+  display: flex;
+  gap: 12px;
+  background: rgba(2, 6, 23, 0.6);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.arena-stat-pill {
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Radar Pulse Center Element */
+.arena-radar-center {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.arena-radar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(99, 102, 241, 0.4);
+  animation: arenaPulse 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.arena-radar-ring:nth-child(1) { width: 100%; height: 100%; animation-delay: 0s; }
+.arena-radar-ring:nth-child(2) { width: 75%; height: 75%; animation-delay: 0.5s; }
+.arena-radar-ring:nth-child(3) { width: 50%; height: 50%; animation-delay: 1s; }
+
+@keyframes arenaPulse {
+  0% { transform: scale(0.6); opacity: 0.8; border-color: #6366f1; }
+  100% { transform: scale(1.4); opacity: 0; border-color: #818cf8; }
+}
+
+.arena-radar-core {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #4f46e5 0%, #1e1b4b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+  position: relative;
+  z-index: 2;
+  color: #fbbf24;
+}
+
+.arena-searching-text-box {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.arena-searching-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.arena-searching-subtitle {
+  font-size: 0.95rem;
+  color: #a5b4fc;
+}
+
+.arena-timer-pill {
+  font-family: monospace;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: #fbbf24;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-top: 12px;
+  display: inline-block;
+}
+
+/* ---------- OPPONENT FOUND COLLISION STAGE ---------- */
+.arena-clash-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 20;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(10px);
+}
+
+.arena-clash-panel-left {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 52%;
+  background: linear-gradient(135deg, #450a0a 0%, #881337 50%, #991b1b 100%);
+  clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: clashSlideLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: 10px 0 30px rgba(239, 68, 68, 0.5);
+  border-right: 4px solid #fca5a5;
+  z-index: 21;
+}
+
+.arena-clash-panel-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 52%;
+  background: linear-gradient(135deg, #172554 0%, #1e40af 50%, #1d4ed8 100%);
+  clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: clashSlideRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: -10px 0 30px rgba(59, 130, 246, 0.5);
+  border-left: 4px solid #93c5fd;
+  z-index: 21;
+}
+
+@keyframes clashSlideLeft {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes clashSlideRight {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(0); }
+}
+
+.arena-vs-collision-emblem {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: vsCollisionPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes vsCollisionPop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.4) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.arena-vs-badge {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f59e0b 0%, #d97706 70%, #b45309 100%);
+  border: 4px solid #ffffff;
+  box-shadow: 0 0 50px rgba(245, 158, 11, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  font-style: italic;
+  color: #ffffff;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+
+.arena-clash-banner {
+  margin-top: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 2px solid #fbbf24;
+  padding: 8px 24px;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 1px;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.arena-countdown-sub {
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* ---------- BATTLE ARENA SCREEN & ROUND FLOW ---------- */
+.arena-battle-screen {
+  width: 100%;
+  max-width: 900px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.arena-battle-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 16px 24px;
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.arena-hud-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.arena-hud-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #ffffff;
+  font-size: 1.1rem;
+}
+
+.arena-hud-player-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.arena-hud-score {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.arena-vs-small {
+  font-weight: 900;
+  font-style: italic;
+  color: #ef4444;
+  font-size: 1.3rem;
+}
+
+/* Timer Bar */
+.arena-timer-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(30, 41, 59, 0.7);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.arena-timer-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 60%, #ef4444 100%);
+  transition: width 1s linear;
+  border-radius: 999px;
+}
+
+.arena-question-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  position: relative;
+}
+
+.arena-question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.arena-question-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.arena-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.arena-option-btn {
+  background: rgba(30, 41, 59, 0.7);
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  border-radius: 14px;
+  padding: 18px 20px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.arena-option-btn:hover:not(.disabled) {
+  background: rgba(79, 70, 229, 0.3);
+  border-color: #818cf8;
+  color: #ffffff;
+  transform: translateY(-2deg);
+}
+
+.arena-option-btn.selected {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: #818cf8;
+  color: #ffffff;
+}
+
+.arena-option-btn.correct-reveal {
+  background: rgba(16, 185, 129, 0.3) !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+.arena-option-btn.wrong-reveal {
+  background: rgba(239, 68, 68, 0.3) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+.arena-option-btn.disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.arena-option-prefix {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #a5b4fc;
+  flex-shrink: 0;
+}
+
+/* Waiting / Status Pill */
+.arena-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #c7d2fe;
+}
+
+/* Match Start Countdown Overlay */
+.arena-countdown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  backdrop-filter: blur(8px);
+}
+
+.arena-countdown-number {
+  font-size: 6rem;
+  font-weight: 900;
+  color: #fbbf24;
+  text-shadow: 0 0 40px rgba(245, 158, 11, 0.8);
+  animation: countdownPulse 1s ease infinite;
+}
+
+@keyframes countdownPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Round Progress Dots */
+.arena-round-dots-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.arena-round-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+.arena-round-dot.active {
+  background: #fbbf24;
+  color: #1e1b4b;
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+  transform: scale(1.15);
+}
+
+.arena-round-dot.completed {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+/* Performance Breakdown in Result Modal */
+.arena-breakdown-container {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 16px 0;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.arena-breakdown-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.85rem;
+}
+
+.arena-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.arena-breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.arena-breakdown-scores {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* Final Result Modal */
+.arena-match-result-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+}
+
+.arena-result-modal {
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 24px;
+  padding: 36px 28px;
+  max-width: 540px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(245, 158, 11, 0.3);
+  animation: modalScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalScaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.arena-result-scores-box {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 20px;
+  border-radius: 16px;
+  margin: 24px 0;
+}
+
+/* Disconnect Banner */
+.arena-disconnect-banner {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* AI Fallback Confirmation Modal */
+.arena-ai-fallback-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 55;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  animation: arenaFadeIn 0.3s ease;
+}
+
+@keyframes arenaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.arena-ai-fallback-modal {
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+  border: 2px solid rgba(129, 140, 248, 0.4);
+  border-radius: 24px;
+  padding: 36px 28px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(99, 102, 241, 0.25);
+  animation: modalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.arena-ai-modal-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.15);
+  border: 2px solid #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #fbbf24;
+}
+
+.arena-ai-modal-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.arena-ai-modal-desc {
+  font-size: 0.95rem;
+  color: #c7d2fe;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.arena-ai-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Incoming Challenge Modal */
+.arena-challenge-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  animation: arenaFadeIn 0.3s ease;
+}
+
+.arena-challenge-modal {
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 24px;
+  padding: 36px 28px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(245, 158, 11, 0.35);
+  animation: modalScaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.arena-challenge-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f59e0b 0%, #b45309 100%);
+  border: 3px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #ffffff;
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
+}
+
+.arena-challenge-profile-box {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+}
+
+.arena-challenge-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ---------- RESPONSIVE MEDIA QUERIES ---------- */
+@media (max-width: 768px) {
+  .arena-matchmaking-duo {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .arena-player-card {
+    max-width: 100%;
+    width: 100%;
+    padding: 20px;
+  }
+  
+  .arena-radar-center {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .arena-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .arena-clash-panel-left, .arena-clash-panel-right {
+    width: 100%;
+    height: 50%;
+    clip-path: none;
+  }
+
+  .arena-clash-panel-left {
+    top: 0;
+    bottom: 50%;
+  }
+
+  .arena-clash-panel-right {
+    top: 50%;
+    bottom: 0;
+  }
+
+  .arena-challenge-actions {
+    flex-direction: column;
+  }
+}
+
+

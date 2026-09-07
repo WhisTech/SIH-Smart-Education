@@ -13,6 +13,8 @@ import IgotDashboard from './pages/IgotDashboard'
 import Reassessment from './pages/Reassessment'
 import McqGenerator from './pages/McqGenerator'
 import ResearchEngine from './pages/ResearchEngine'
+import ArenaHome from './pages/ArenaHome'
+import ArenaLeaderboard from './pages/ArenaLeaderboard'
 import './App.css'
 
 function App() {
@@ -57,6 +59,8 @@ function App() {
             <Route path="/igot-courses" element={<IgotDashboard />} />
             <Route path="/mcq-generator" element={<McqGenerator />} />
             <Route path="/research-engine" element={<ResearchEngine />} />
+            <Route path="/arena" element={<ArenaHome />} />
+            <Route path="/arena/leaderboard" element={<ArenaLeaderboard />} />
           </Route>
 
           {/* Fallback 404 route */}
