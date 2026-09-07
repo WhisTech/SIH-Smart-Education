@@ -1718,10 +1718,11 @@ app.get('/api/arena/leaderboard', authenticateUser, async (req, res) => {
     const { data, error } = await supabase
       .from('arena_profiles')
       .select('user_id, arena_points, wins, current_streak, best_streak, employee_profiles(name)')
+      .gt('arena_points', 0)
       .order('arena_points', { ascending: false })
       .order('wins', { ascending: false })
       .order('best_streak', { ascending: false })
-      .limit(50);
+      .limit(20);
 
     if (error) throw error;
     
@@ -1739,6 +1740,89 @@ app.get('/api/arena/leaderboard', authenticateUser, async (req, res) => {
   } catch (err) {
     console.error('Leaderboard fetch error:', err);
     res.status(500).json({ error: 'Failed to load leaderboard' });
+  }
+});
+
+app.get('/api/arena/history', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Fetch last 5 matches for this user
+    const { data, error } = await supabase
+      .from('arena_matches')
+      .select(`
+        id,
+        mode,
+        result,
+        player1_score,
+        player2_score,
+        winner_id,
+        started_at,
+        ended_at,
+        player1_id,
+        player2_id
+      `)
+      .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+      .eq('status', 'COMPLETED')
+      .order('ended_at', { ascending: false })
+      .limit(5);
+
+    if (error) throw error;
+
+    // Fetch opponent names
+    const history = await Promise.all(data.map(async (m) => {
+      let isWin = false;
+      let isDraw = m.result === 'DRAW';
+      if (!isDraw) {
+        isWin = m.winner_id === userId;
+      }
+      
+      let opponentId = m.player1_id === userId ? m.player2_id : m.player1_id;
+      let opponentName = 'Arena AI';
+      
+      if (m.mode === 'HUMAN' && opponentId) {
+        const { data: oppProf } = await supabase
+          .from('employee_profiles')
+          .select('name')
+          .eq('user_id', opponentId)
+          .maybeSingle();
+        if (oppProf && oppProf.name) {
+          opponentName = oppProf.name;
+        } else {
+          opponentName = 'Colleague';
+        }
+      }
+
+      const myScore = m.player1_id === userId ? m.player1_score : m.player2_score;
+      const oppScore = m.player1_id === userId ? m.player2_score : m.player1_score;
+
+      // AP gained/lost
+      // According to logic: win = +50 (Human) / +10 (AI), loss = -30 (Human) / -10 (AI), draw = 0
+      let apChange = 0;
+      if (m.mode === 'AI') {
+        if (isWin) apChange = 10;
+        else if (!isDraw) apChange = -10;
+      } else {
+        if (isWin) apChange = 50;
+        else if (!isDraw) apChange = -30;
+      }
+
+      return {
+        id: m.id,
+        mode: m.mode,
+        opponentName,
+        isWin,
+        isDraw,
+        myScore,
+        oppScore,
+        apChange,
+        date: m.ended_at || m.started_at
+      };
+    }));
+
+    res.json({ success: true, history });
+  } catch (err) {
+    console.error('Arena history fetch error:', err);
+    res.status(500).json({ success: false, error: 'Failed to load arena history' });
   }
 });
 

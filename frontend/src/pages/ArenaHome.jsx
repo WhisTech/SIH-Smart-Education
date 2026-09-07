@@ -71,6 +71,7 @@ export default function ArenaHome() {
   })
   
   const [badges, setBadges] = useState([])
+  const [matchHistory, setMatchHistory] = useState([])
 
   // Opponent Data
   const [opponent, setOpponent] = useState({
@@ -107,12 +108,16 @@ export default function ArenaHome() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
-      const response = await fetch(`${backendUrl}/api/arena/profile`, {
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
-        }
-      })
-      const profileData = response.ok ? await response.json() : null
+      
+      const headers = { 'Authorization': token ? `Bearer ${token}` : '' }
+      
+      const [profileRes, historyRes] = await Promise.all([
+        fetch(`${backendUrl}/api/arena/profile`, { headers }),
+        fetch(`${backendUrl}/api/arena/history`, { headers })
+      ])
+      
+      const profileData = profileRes.ok ? await profileRes.json() : null
+      const historyData = historyRes.ok ? await historyRes.json() : null
         
       if (profileData) {
         setArenaStats({
@@ -134,6 +139,10 @@ export default function ArenaHome() {
             earned: true
           })))
         }
+      }
+
+      if (historyData && historyData.success) {
+        setMatchHistory(historyData.history || [])
       }
     } catch (err) {
       console.error('Error fetching arena data', err)
@@ -1287,6 +1296,61 @@ export default function ArenaHome() {
                     description={badge.description}
                     earned={badge.earned}
                   />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. MATCH HISTORY SECTION */}
+          {matchHistory.length > 0 && (
+            <div className="card animate-card" style={{ marginTop: '24px', padding: '36px 28px' }}>
+              <div className="card-header-clean" style={{ marginBottom: '24px' }}>
+                <div className="header-title-group">
+                  <span className="section-pill" style={{ background: '#e0e7ff', color: '#4338ca' }}>Match History</span>
+                  <h3 className="section-heading">Recent Battles</h3>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {matchHistory.map((m) => (
+                  <div key={m.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '50%',
+                        background: m.isWin ? '#dcfce7' : (m.isDraw ? '#f1f5f9' : '#fee2e2'),
+                        color: m.isWin ? '#16a34a' : (m.isDraw ? '#64748b' : '#dc2626'),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                      }}>
+                        {m.isWin ? 'W' : (m.isDraw ? 'D' : 'L')}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          VS {m.opponentName}
+                          <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: m.mode === 'AI' ? '#e0e7ff' : '#fef3c7', color: m.mode === 'AI' ? '#4f46e5' : '#b45309' }}>
+                            {m.mode}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                          {new Date(m.date).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 'bold', color: '#334155' }}>
+                        {m.myScore} - {m.oppScore}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: m.apChange > 0 ? '#16a34a' : (m.apChange < 0 ? '#dc2626' : '#64748b') }}>
+                        {m.apChange > 0 ? `+${m.apChange}` : m.apChange} AP
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

@@ -871,6 +871,12 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
       if (match.status === 'COMPLETED') return;
       match.status = 'COMPLETED';
 
+      // Ensure idempotency against database
+      if (match.matchId) {
+         const { data: dbMatch } = await supabase.from('arena_matches').select('status').eq('id', match.matchId).maybeSingle();
+         if (dbMatch && dbMatch.status === 'COMPLETED') return;
+      }
+
       if (match.roundTimer) clearTimeout(match.roundTimer);
       if (match.roundTransitionTimer) clearTimeout(match.roundTransitionTimer);
       if (match.aiAnswerTimer) clearTimeout(match.aiAnswerTimer);
@@ -936,13 +942,31 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
       const processPlayerResult = async (playerId, opponentId, isWin, isDraw, isAI) => {
         if (!playerId || String(playerId).startsWith('ai_')) return null;
 
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('arena_profiles')
           .select('*')
           .eq('user_id', playerId)
-          .single();
+          .maybeSingle();
 
-        if (!profile) return null;
+        if (!profile) {
+           await supabase.from('arena_profiles').insert({
+             user_id: playerId,
+             arena_rating: 1200,
+             arena_points: 0,
+             wins: 0, losses: 0, draws: 0,
+             current_streak: 0, best_streak: 0,
+             total_matches: 0, is_available: true
+           }).catch(() => {});
+           
+           const { data: newProf } = await supabase
+             .from('arena_profiles')
+             .select('*')
+             .eq('user_id', playerId)
+             .maybeSingle();
+           
+           if (!newProf) return null;
+           profile = newProf;
+        }
 
         let pointsChange = 0;
         let newStreak = profile.current_streak || 0;
@@ -978,7 +1002,7 @@ function initArenaSocket(server, supabaseUrl, supabaseSecretKey) {
             .from('arena_profiles')
             .select('arena_rating')
             .eq('user_id', opponentId)
-            .single();
+            .maybeSingle();
           
           const oppRating = oppProfile?.arena_rating || 1200;
           const score = isWin ? 1 : (isDraw ? 0.5 : 0);
