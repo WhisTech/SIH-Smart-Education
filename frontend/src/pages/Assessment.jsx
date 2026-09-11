@@ -1,9 +1,12 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import LoadingScreen from '../components/LoadingScreen'
 import { useTranslation } from 'react-i18next'
+import { useProctoring } from '../hooks/useProctoring'
+import ProctoringModal from '../components/ProctoringModal'
+import ProctoringCameraFeed from '../components/ProctoringCameraFeed'
 import { 
   BrainCircuit, 
   CheckCircle2, 
@@ -12,7 +15,8 @@ import {
   Sparkles, 
   Target, 
   UserCheck,
-  ArrowRight
+  ArrowRight,
+  ShieldAlert
 } from 'lucide-react'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
@@ -42,6 +46,49 @@ export default function Assessment() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  // Proctoring & Verification State
+  const [isPreCheckOpen, setIsPreCheckOpen] = useState(false)
+  const [pendingExamType, setPendingExamType] = useState('initial')
+
+  // Exam Countdown Timer State (in seconds)
+  const [timeLeft, setTimeLeft] = useState(null)
+
+  // Initialize Free Browser-Based Proctoring Hook
+  const {
+    stream,
+    cameraStatus,
+    cameraError,
+    isFullscreen,
+    fullscreenError,
+    warningCount,
+    setWarningCount,
+    isTerminated,
+    setIsTerminated,
+    currentViolation,
+    setCurrentViolation,
+    isViolationModalOpen,
+    setIsViolationModalOpen,
+    isModelLoading,
+    isModelLoaded,
+    faceStatus,
+    faceCount,
+    requestCameraPermission,
+    stopCamera,
+    enterFullscreen,
+    exitFullscreen,
+    dismissWarning,
+    pauseProctoring
+  } = useProctoring({
+    assessmentId,
+    proctoringMode: 'STRICT', // STRICT mode enabled by default (Layer A + Layer B Face AI)
+    isActive: started && !isSubmitting && !isTerminated,
+    onTerminated: (reason) => {
+      console.warn('[Proctoring] Assessment cancelled due to violations:', reason)
+      exitFullscreen()
+      stopCamera()
+    }
+  })
+
   // 1. Fetch info function
   const fetchInfo = useCallback(async () => {
     try {
@@ -69,6 +116,12 @@ export default function Assessment() {
       setIsSubmitting(true)
       setLoadingAction(true)
       setError('')
+      
+      // Pause proctoring monitoring so exiting fullscreen does not trigger false warnings during submit
+      pauseProctoring()
+      stopCamera()
+      exitFullscreen()
+
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${BACKEND_URL}/api/assessment/${id}/submit`, {
         method: 'POST',
@@ -93,7 +146,7 @@ export default function Assessment() {
       setLoadingAction(false)
       setIsSubmitting(false)
     }
-  }, [navigate, t])
+  }, [navigate, t, stopCamera, exitFullscreen, pauseProctoring])
 
   // 3. Fetch Next Question function
   const fetchNextQuestion = useCallback(async (id) => {
@@ -105,6 +158,11 @@ export default function Assessment() {
         headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       const data = await res.json()
+      
+      if (!res.ok && data.terminated) {
+        throw new Error(data.message || 'Assessment has been terminated.')
+      }
+
       if (!data.success) throw new Error(data.message || 'Failed to fetch question')
       
       if (data.complete) {
@@ -126,7 +184,7 @@ export default function Assessment() {
     }
   }, [handleSubmitAssessment, t])
 
-  // 3. Start Assessment function
+  // 4. Start Assessment function
   const handleStart = useCallback(async (type = 'initial') => {
     const finalType = typeof type === 'string' && (type === 'reassessment' || type === 'initial') ? type : 'initial'
     
@@ -149,25 +207,127 @@ export default function Assessment() {
       setAssessmentId(data.assessmentId)
       setTotalQuestions(data.totalQuestions)
       setStarted(true)
+
+      // Initialize countdown timer (defaults to estimatedTime minutes or 15 mins)
+      const initialMins = assessmentInfo?.estimatedTime || 15
+      setTimeLeft(initialMins * 60)
       
       await fetchNextQuestion(data.assessmentId)
     } catch (err) {
       setError(err.message || t('Error starting assessment'))
       setLoadingAction(false)
     }
-  }, [fetchNextQuestion, t])
+  }, [fetchNextQuestion, assessmentInfo, t])
 
-  // 4. Fetch info on mount
+  // 5. Pre-Check & Fullscreen Handlers
+  const handleOpenPreCheck = (type = 'initial') => {
+    setPendingExamType(type)
+    setIsPreCheckOpen(true)
+  }
+
+  const handleConfirmStartExam = async () => {
+    try {
+      setLoadingAction(true)
+      const ok = await enterFullscreen()
+      if (!ok) {
+        setLoadingAction(false)
+        return
+      }
+
+      if (assessmentId) {
+        // Session already exists! Resume it instead of creating a duplicate attempt
+        setStarted(true)
+        setIsPreCheckOpen(false)
+        const initialMins = assessmentInfo?.estimatedTime || 15
+        setTimeLeft(initialMins * 60)
+        await fetchNextQuestion(assessmentId)
+      } else {
+        await handleStart(pendingExamType)
+        setIsPreCheckOpen(false)
+      }
+    } catch (err) {
+      console.error('Failed to start assessment:', err)
+      setError(err.message || t('Error starting assessment'))
+      setLoadingAction(false)
+    }
+  }
+
+  // 6. Active Exam Countdown Timer Effect
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchInfo();
-      if (searchParams.get('start') === 'true' && !started) {
-        handleStart(searchParams.get('type') || 'reassessment');
+    if (!started || isSubmitting || isTerminated || timeLeft === null) return
+
+    if (timeLeft <= 0) {
+      if (assessmentId) {
+        handleSubmitAssessment(assessmentId)
+      }
+      return
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [started, isSubmitting, isTerminated, timeLeft, assessmentId, handleSubmitAssessment])
+
+  // 7. Fetch info on mount & restore active or terminated sessions
+  useEffect(() => {
+    let isMounted = true
+
+    const checkActiveSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) return
+
+        const res = await fetch(`${BACKEND_URL}/api/assessment/active-session`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (isMounted && data.success && data.hasActiveSession && data.assessment) {
+          const a = data.assessment
+          setAssessmentId(a.id)
+          setWarningCount(a.warning_count || 0)
+          
+          if (a.status === 'terminated') {
+            setIsPreCheckOpen(false)
+            setStarted(true)
+            setIsTerminated(true)
+            setCurrentViolation({
+              type: a.termination_reason || 'TAB_SWITCH',
+              warningNumber: 3,
+              message: 'Assessment was terminated due to proctoring violations.'
+            })
+          } else if (a.status === 'in_progress') {
+            setTotalQuestions(a.total_questions || 6)
+            setPendingExamType(a.assessment_type || 'initial')
+            // Re-open precheck to verify camera & fullscreen on reload
+            setIsPreCheckOpen(true)
+          }
+        }
+      } catch (err) {
+        console.warn('Active session check error:', err)
       }
     }
-  }, [authLoading, user, started, searchParams, fetchInfo, handleStart])
 
-  // 4. Submit Answer & Go Next
+    if (!authLoading && user) {
+      fetchInfo()
+      checkActiveSession()
+
+      const typeParam = searchParams.get('type')
+      const startParam = searchParams.get('start')
+      if (typeParam === 'reassessment' || startParam === 'true') {
+        setPendingExamType('reassessment')
+        setIsPreCheckOpen(true)
+      }
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [authLoading, user, searchParams, fetchInfo, setWarningCount, setIsTerminated, setCurrentViolation])
+
+  // 8. Submit Answer & Go Next
   const handleNextQuestion = async () => {
     if (!selectedOption || !currentQuestion?.id || !assessmentId) return;
     
@@ -280,7 +440,7 @@ export default function Assessment() {
             <button 
               type="button" 
               className="btn btn-primary btn-lg" 
-              onClick={() => handleStart('initial')} 
+              onClick={() => handleOpenPreCheck('initial')} 
               disabled={loadingAction || !assessmentInfo || assessmentInfo.currentSkills.length === 0}
               style={{ padding: '14px 36px', fontSize: '16px', borderRadius: '10px' }}
             >
@@ -297,6 +457,23 @@ export default function Assessment() {
             )}
           </div>
         </div>
+
+        {/* Pre-Exam Verification Modal (Camera Permission + Fullscreen) */}
+        <ProctoringModal
+          mode="pre_check"
+          proctoringMode="STRICT"
+          isOpen={isPreCheckOpen}
+          stream={stream}
+          cameraStatus={cameraStatus}
+          cameraError={cameraError}
+          fullscreenError={fullscreenError}
+          isModelLoading={isModelLoading}
+          isModelLoaded={isModelLoaded}
+          faceStatus={faceStatus}
+          faceCount={faceCount}
+          onRequestCamera={requestCameraPermission}
+          onStartExam={handleConfirmStartExam}
+        />
       </div>
     )
   }
@@ -330,7 +507,7 @@ export default function Assessment() {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => handleStart('initial')}
+              onClick={() => handleOpenPreCheck('initial')}
               disabled={loadingAction}
             >
               {t('Start Assessment')}
@@ -358,8 +535,19 @@ export default function Assessment() {
           <h1 className="page-hero-title">{t('AI Competency Assessment')}</h1>
           <p className="page-hero-subtitle">{t('Answer the following question to advance.')}</p>
         </div>
-        <div className="gap-priority-pill priority-medium" style={{ fontSize: '13px', padding: '6px 14px' }}>
-          {t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Active Exam Countdown Timer Pill */}
+          {timeLeft !== null && (
+            <div className={`exam-countdown-pill ${timeLeft < 180 ? 'urgent' : ''}`} title="Time Remaining">
+              <Clock size={15} />
+              <span>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+            </div>
+          )}
+          
+          <div className="gap-priority-pill priority-medium" style={{ fontSize: '13px', padding: '6px 14px' }}>
+            {t('Question')} {currentIndex + 1} {t('of')} {totalQuestions}
+          </div>
         </div>
       </div>
 
@@ -437,6 +625,58 @@ export default function Assessment() {
           </button>
         </div>
       </div>
+
+      {/* Floating Live Proctoring Camera Feed */}
+      {started && !isTerminated && (
+        <ProctoringCameraFeed
+          stream={stream}
+          warningCount={warningCount}
+          cameraStatus={cameraStatus}
+          faceStatus={faceStatus}
+          faceCount={faceCount}
+          proctoringMode="STRICT"
+        />
+      )}
+
+      {/* Pre-Exam Verification Modal (Camera Permission + Fullscreen) */}
+      <ProctoringModal
+        mode="pre_check"
+        proctoringMode="STRICT"
+        isOpen={isPreCheckOpen}
+        stream={stream}
+        cameraStatus={cameraStatus}
+        cameraError={cameraError}
+        fullscreenError={fullscreenError}
+        isModelLoading={isModelLoading}
+        isModelLoaded={isModelLoaded}
+        faceStatus={faceStatus}
+        faceCount={faceCount}
+        onRequestCamera={requestCameraPermission}
+        onStartExam={handleConfirmStartExam}
+      />
+
+      {/* Warning 1 & Warning 2 Modal */}
+      <ProctoringModal
+        mode="warning"
+        proctoringMode="STRICT"
+        isOpen={isViolationModalOpen && !isTerminated}
+        warningCount={warningCount}
+        violationType={currentViolation?.type || 'TAB_SWITCH'}
+        onDismissWarning={dismissWarning}
+      />
+
+      {/* Termination Modal (Warning 3 Reached) */}
+      <ProctoringModal
+        mode="terminated"
+        proctoringMode="STRICT"
+        isOpen={isTerminated}
+        violationType={currentViolation?.type || 'TAB_SWITCH'}
+        onExitExam={() => {
+          exitFullscreen()
+          stopCamera()
+          navigate('/dashboard')
+        }}
+      />
     </div>
   )
 }

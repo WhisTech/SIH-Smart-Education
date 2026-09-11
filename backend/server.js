@@ -742,6 +742,45 @@ app.get('/api/assessment/result/:assessmentId', authenticateUser, async (req, re
 });
 
 /**
+ * GET /api/assessment/active-session
+ * Checks if the user has an active or recently terminated assessment attempt.
+ * Guarantees persistent warning count & lockouts across page refreshes and URL direct visits.
+ */
+app.get('/api/assessment/active-session', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: assessment } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('user_id', userId)
+      .in('status', ['in_progress', 'terminated'])
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!assessment) {
+      return res.json({ success: true, hasActiveSession: false, assessment: null });
+    }
+
+    const { data: violations } = await supabase
+      .from('assessment_violations')
+      .select('id, violation_type, warning_number, created_at')
+      .eq('assessment_id', assessment.id)
+      .order('created_at', { ascending: true });
+
+    res.json({
+      success: true,
+      hasActiveSession: true,
+      assessment,
+      warningCount: assessment.warning_count || (violations || []).length || 0,
+      violations: violations || []
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
  * GET /api/assessment/:assessmentId (Wildcard route placed AFTER static routes!)
  */
 app.get('/api/assessment/:assessmentId', authenticateUser, async (req, res) => {
@@ -766,12 +805,20 @@ app.get('/api/assessment/:assessmentId', authenticateUser, async (req, res) => {
       .eq('assessment_id', assessmentId)
       .order('question_order', { ascending: true })
 
+    const { data: violations } = await supabase
+      .from('assessment_violations')
+      .select('id, violation_type, warning_number, created_at')
+      .eq('assessment_id', assessmentId)
+      .order('created_at', { ascending: true })
+
     const { data: allSkills } = await supabase.from('skills').select('id, name')
     const skillsMap = new Map((allSkills || []).map((s) => [s.id, s.name]))
 
     res.json({
       success: true,
       assessment,
+      warningCount: assessment.warning_count || (violations || []).length || 0,
+      violations: violations || [],
       questions: (questions || []).map((q) => ({
         id: q.id,
         skillId: q.skill_id,
@@ -784,6 +831,156 @@ app.get('/api/assessment/:assessmentId', authenticateUser, async (req, res) => {
     })
   } catch (err) {
     res.status(500).json({ success: false, message: err.message })
+  }
+});
+
+/**
+ * POST /api/assessment/:assessmentId/violation
+ * Logs proctoring violations and enforces the 3-warning limit.
+ * Warning 1: Logged, assessment continues.
+ * Warning 2: Logged, assessment continues with strong warning.
+ * Warning 3: Assessment immediately terminated.
+ */
+app.post('/api/assessment/:assessmentId/violation', authenticateUser, async (req, res) => {
+  try {
+    const { assessmentId } = req.params;
+    const userId = req.user.id;
+    const { violationType, metadata } = req.body;
+
+    const validViolations = [
+      'CAMERA_DENIED', 'CAMERA_DISCONNECTED', 'CAMERA_INTERRUPTED', 
+      'TAB_SWITCH', 'WINDOW_BLUR', 'FULLSCREEN_EXIT',
+      'FACE_NOT_DETECTED', 'MULTIPLE_FACES',
+      'tab_switch', 'window_blur', 'fullscreen_exit', 'camera_disabled'
+    ];
+    if (!validViolations.includes(violationType)) {
+      return res.status(400).json({ success: false, message: 'Invalid violation type.' });
+    }
+
+    const { data: assessment, error: aErr } = await supabase
+      .from('assessments')
+      .select('id, status, warning_count')
+      .eq('id', assessmentId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (aErr || !assessment) {
+      return res.status(404).json({ success: false, message: 'Assessment not found or access denied.' });
+    }
+
+    if (assessment.status === 'terminated') {
+      return res.json({ success: true, warningNumber: 3, terminated: true, message: 'Assessment is already terminated.' });
+    }
+
+    if (assessment.status !== 'in_progress') {
+      return res.status(400).json({ success: false, message: 'Assessment is not currently active.' });
+    }
+
+    // Count existing violations from database to guarantee tamper-proof tracking
+    const { count: existingCount } = await supabase
+      .from('assessment_violations')
+      .select('*', { count: 'exact', head: true })
+      .eq('assessment_id', assessmentId);
+
+    const warningNumber = Math.min(3, (existingCount || 0) + 1);
+
+    // Record violation in database
+    await supabase.from('assessment_violations').insert({
+      assessment_id: assessmentId,
+      user_id: userId,
+      violation_type: violationType,
+      warning_number: warningNumber,
+      metadata: metadata || {}
+    });
+
+    const isTerminated = warningNumber >= 3;
+
+    if (isTerminated) {
+      await supabase.from('assessments').update({
+        warning_count: warningNumber,
+        status: 'terminated',
+        termination_reason: violationType,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).eq('id', assessmentId);
+
+      return res.json({
+        success: true,
+        warningNumber: 3,
+        terminated: true,
+        violationType,
+        message: 'Assessment has been terminated due to reaching 3 proctoring violations.'
+      });
+    } else {
+      await supabase.from('assessments').update({
+        warning_count: warningNumber,
+        updated_at: new Date().toISOString()
+      }).eq('id', assessmentId);
+
+      return res.json({
+        success: true,
+        warningNumber,
+        terminated: false,
+        violationType,
+        message: `Warning ${warningNumber} of 3 recorded.`
+      });
+    }
+  } catch (err) {
+    console.error('Violation recording error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/assessment/:assessmentId/terminate
+ * Manual or client-confirmed termination
+ */
+app.post('/api/assessment/:assessmentId/terminate', authenticateUser, async (req, res) => {
+  try {
+    const { assessmentId } = req.params;
+    const userId = req.user.id;
+    const { reason } = req.body;
+
+    const { data: assessment, error: aErr } = await supabase
+      .from('assessments')
+      .select('id, status')
+      .eq('id', assessmentId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (aErr || !assessment) {
+      return res.status(404).json({ success: false, message: 'Assessment not found or access denied.' });
+    }
+
+    await supabase.from('assessments').update({
+      status: 'terminated',
+      termination_reason: reason || 'manual_cancellation',
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }).eq('id', assessmentId);
+
+    res.json({ success: true, terminated: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/assessment/proctoring/vision-verify
+ * Optional backend vision verification endpoint (Layer 3 fallback).
+ * Accepts occasional base64 still frames only when local face detection is unavailable.
+ */
+app.post('/api/assessment/proctoring/vision-verify', authenticateUser, async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, message: 'Missing imageBase64 payload.' });
+    }
+    const groqClient = require('./groqClient');
+    const result = await groqClient.analyzeProctoringFrame(imageBase64);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -824,6 +1021,26 @@ app.post('/api/assessment/start-new', authenticateUser, async (req, res) => {
     if (!requestedType) {
       const { count } = await supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed');
       if (count && count > 0) assessmentType = 'reassessment';
+    }
+
+    // Reuse active in-progress assessment if one already exists to prevent duplicate attempts
+    const { data: existingActive } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'in_progress')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingActive) {
+      return res.json({
+        success: true,
+        assessmentId: existingActive.id,
+        totalQuestions: existingActive.total_questions || totalQuestions,
+        assessmentType: existingActive.assessment_type || assessmentType,
+        isExisting: true
+      });
     }
 
     const { data: assessment, error: createErr } = await supabase
@@ -958,9 +1175,25 @@ app.post('/api/assessment/:assessmentId/answer', authenticateUser, async (req, r
   try {
     const { assessmentId } = req.params;
     const { questionId, selectedAnswer } = req.body;
+    const userId = req.user.id;
 
     if (!questionId || typeof selectedAnswer !== 'string') {
       return res.status(400).json({ success: false, message: 'Missing questionId or selectedAnswer in request payload.' });
+    }
+
+    const { data: assessment } = await supabase
+      .from('assessments')
+      .select('status')
+      .eq('id', assessmentId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!assessment || assessment.status !== 'in_progress') {
+      return res.status(403).json({
+        success: false,
+        terminated: assessment?.status === 'terminated',
+        message: 'Assessment is not in progress or has been terminated.'
+      });
     }
     
     const { data: question, error: qErr } = await supabase
@@ -1001,6 +1234,14 @@ app.post('/api/assessment/:assessmentId/submit', authenticateUser, async (req, r
 
     const { data: assessment } = await supabase.from('assessments').select('*').eq('id', assessmentId).eq('user_id', userId).maybeSingle();
     if (!assessment) return res.status(404).json({ success: false, message: 'Assessment not found' });
+
+    if (assessment.status === 'terminated') {
+      return res.status(403).json({
+        success: false,
+        terminated: true,
+        message: 'Assessment was terminated due to proctoring violations and cannot be submitted.'
+      });
+    }
 
     // IDEMPOTENCY CHECK: If already completed, return existing score immediately
     if (assessment.status === 'completed') {

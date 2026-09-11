@@ -69,32 +69,10 @@ export default function Reassessment() {
     fetchReassessmentInfo()
   }, [])
 
-  const handleStartReassessment = async () => {
-    setStarting(true)
-    setError('')
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      const res = await fetch(`${BACKEND_URL}/api/assessment/start-new`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'Accept-Language': i18n.language
-        },
-        body: JSON.stringify({ assessmentType: 'reassessment' })
-      })
-
-      const data = await res.json()
-      if (!data.success) throw new Error(data.message || 'Failed to initialize reassessment attempt')
-
-      navigate(`/assessment?start=true&type=reassessment`)
-    } catch (err) {
-      console.error('Start reassessment error:', err)
-      setError(err.message || 'Unable to start reassessment')
-      setStarting(false)
-    }
+  const handleStartReassessment = () => {
+    // Navigate directly to assessment with type=reassessment
+    // The proctoring system check will verify camera and fullscreen before initializing the attempt
+    navigate('/assessment?type=reassessment')
   }
 
   if (loading) {

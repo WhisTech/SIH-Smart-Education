@@ -332,9 +332,48 @@ RULES:
   }
 }
 
+/**
+ * Optional Groq Vision Fallback for Proctoring Still Frame Analysis
+ * Never continuous video; analyzes occasional still image base64 frame if local face detection is unavailable.
+ */
+async function analyzeProctoringFrame(imageBase64) {
+  if (!groq) {
+    return { face_count: 1, multiple_faces: false, confidence: 0.5, note: 'Groq API key not configured, local detection primary' };
+  }
+  try {
+    const cleanBase64 = String(imageBase64).replace(/^data:image\/\w+;base64,/, '');
+    const response = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are an AI proctoring vision validator. Analyze the image and count human faces. Return ONLY a valid JSON object matching {"face_count": number, "multiple_faces": boolean, "confidence": number}' },
+        { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${cleanBase64}` } }] }
+      ],
+      model: 'llama-3.2-11b-vision-preview',
+      temperature: 0.1
+    });
+
+    let text = response.choices[0]?.message?.content || '{}';
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+       text = text.substring(firstBrace, lastBrace + 1);
+    }
+    const parsed = JSON.parse(text);
+    return {
+      face_count: typeof parsed.face_count === 'number' ? parsed.face_count : 1,
+      multiple_faces: !!parsed.multiple_faces,
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.9
+    };
+  } catch (err) {
+    console.warn('[Proctoring] Groq vision fallback error:', err.message);
+    return { face_count: 1, multiple_faces: false, confidence: 0.5, error: err.message };
+  }
+}
+
 module.exports = {
   generateQuizQuestions,
   generateAssessmentAnalysis,
   generateAdaptiveQuestion,
-  generateFingerprint
+  generateFingerprint,
+  analyzeProctoringFrame
 }
